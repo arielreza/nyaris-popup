@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   Wifi,
   WifiOff,
+  AlertTriangle,
+  XCircle,
 } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase.js'
 import { formatRupiah } from '@/lib/currency.js'
@@ -21,19 +23,23 @@ const route = useRoute()
 const loading = ref(true)
 const error = ref(false)
 const tenant = ref(null)
+const event = ref(null)
 const items = ref([])
 const totals = ref(null)
 const realtimeConnected = ref(false)
 let realtimeChannel = null
+let pollInterval = null
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
-const completedItems = computed(() =>
-  [...items.value]
-    .filter((i) => i.transaction_status !== 'VOIDED')
-    .sort(
-      (a, b) =>
-        new Date(b.transaction_created_at) - new Date(a.transaction_created_at)
-    )
+const sortedItems = computed(() =>
+  [...items.value].sort(
+    (a, b) =>
+      new Date(b.transaction_created_at) - new Date(a.transaction_created_at)
+  )
+)
+
+const completedCount = computed(() =>
+  items.value.filter((i) => i.transaction_status === 'COMPLETED').length
 )
 
 const combinedSharePercent = computed(() => {
@@ -59,17 +65,18 @@ function relativeTime(isoString) {
 async function fetchPortalData() {
   const token = route.params.token
   const { data, error: rpcError } = await supabase.rpc(
-    'get_tenant_portal_data',
+    'get_tenant_portal_by_token',
     { p_token: token }
   )
 
-  if (rpcError || !data || !data.tenant) {
+  if (rpcError || !data || !data.tenant || data.error) {
     error.value = true
     loading.value = false
     return
   }
 
   tenant.value = data.tenant
+  event.value = data.event
   items.value = data.items ?? []
   totals.value = data.totals ?? {
     total_gross: 0,
@@ -88,7 +95,7 @@ function subscribeRealtime() {
     .on(
       'postgres_changes',
       {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'transaction_items',
         filter: `tenant_id=eq.${tenant.value.id}`,
@@ -107,12 +114,17 @@ onMounted(async () => {
   await fetchPortalData()
   if (!error.value && tenant.value) {
     subscribeRealtime()
+    // Periodic refresh every 15s to guarantee fresh data for login-free anon sessions
+    pollInterval = setInterval(fetchPortalData, 15000)
   }
 })
 
 onUnmounted(() => {
   if (realtimeChannel) {
     supabase.removeChannel(realtimeChannel)
+  }
+  if (pollInterval) {
+    clearInterval(pollInterval)
   }
 })
 </script>
@@ -290,13 +302,13 @@ onUnmounted(() => {
             </h2>
           </div>
           <span class="text-xs text-slate-500">
-            {{ completedItems.length }} transaction{{ completedItems.length !== 1 ? 's' : '' }}
+            {{ sortedItems.length }} transaction{{ sortedItems.length !== 1 ? 's' : '' }}
           </span>
         </div>
 
         <!-- Empty state -->
         <div
-          v-if="completedItems.length === 0"
+          v-if="sortedItems.length === 0"
           class="flex flex-col items-center justify-center gap-4 py-16 px-6 text-center"
         >
           <div class="bg-slate-800 rounded-full p-5">
@@ -313,9 +325,14 @@ onUnmounted(() => {
         <!-- Items list -->
         <div v-else class="divide-y divide-slate-800 max-h-[520px] overflow-y-auto">
           <div
-            v-for="item in completedItems"
+            v-for="item in sortedItems"
             :key="item.id"
-            class="px-5 py-4 hover:bg-slate-800/50 transition-colors"
+            :class="[
+              'px-5 py-4 transition-colors',
+              item.transaction_status === 'VOID' || item.transaction_status === 'VOIDED'
+                ? 'bg-rose-950/20 hover:bg-rose-950/30'
+                : 'hover:bg-slate-800/50'
+            ]"
           >
             <!-- Top row: receipt code + payment badge + time -->
             <div class="flex items-center justify-between gap-2 mb-2">
@@ -334,6 +351,14 @@ onUnmounted(() => {
                 >
                   {{ item.payment_method }}
                 </span>
+                <!-- Void badge -->
+                <span
+                  v-if="item.transaction_status === 'VOID' || item.transaction_status === 'VOIDED'"
+                  class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-900/60 text-rose-400 border border-rose-800 inline-flex items-center gap-1"
+                >
+                  <XCircle class="w-3 h-3" />
+                  VOID
+                </span>
               </div>
               <span class="text-slate-500 text-xs whitespace-nowrap">
                 {{ relativeTime(item.transaction_created_at) }}
@@ -345,8 +370,22 @@ onUnmounted(() => {
               {{ item.item_note }}
             </p>
 
+            <!-- Void Reason Banner (Subtly displayed on voided items) -->
+            <div
+              v-if="(item.transaction_status === 'VOID' || item.transaction_status === 'VOIDED') && item.void_reason"
+              class="flex items-center gap-1.5 text-xs text-rose-300/90 mb-2.5 bg-rose-500/10 border border-rose-500/20 rounded-lg px-2.5 py-1 w-fit"
+            >
+              <AlertTriangle class="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span>Alasan void: {{ item.void_reason }}</span>
+            </div>
+
             <!-- Amount breakdown (3 clean figures: Gross, Potongan combined %, Your Net) -->
-            <div class="flex items-center gap-4 sm:gap-6 flex-wrap">
+            <div
+              :class="[
+                'flex items-center gap-4 sm:gap-6 flex-wrap',
+                item.transaction_status === 'VOID' || item.transaction_status === 'VOIDED' ? 'opacity-50 line-through' : ''
+              ]"
+            >
               <div>
                 <p class="text-slate-500 text-xs">Gross</p>
                 <p class="text-white text-sm font-medium">

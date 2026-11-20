@@ -1,5 +1,12 @@
 <script setup>
-// App.vue — root component, delegates all layout to views via router
+import { onMounted } from 'vue'
+import { useAuth } from '@/lib/useAuth.js'
+
+const { initAuth } = useAuth()
+
+onMounted(() => {
+  initAuth()
+})
 </script>
 
 <template>

@@ -53,6 +53,14 @@
             <ShieldCheck class="w-3.5 h-3.5 text-emerald-400" />
             <span>Admin</span>
           </router-link>
+
+          <button
+            @click="handleLogout"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            title="Keluar dari akun staf"
+          >
+            <LogOut class="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </header>
@@ -237,13 +245,15 @@
           </div>
 
           <!-- Receipt Code -->
-          <div class="flex items-center justify-between bg-slate-800 rounded-xl px-4 py-3">
-            <span class="text-slate-400 text-sm">Kode Struk</span>
-            <div class="flex items-center gap-2">
-              <span class="font-mono font-bold text-amber-400 tracking-widest">{{ receiptCode }}</span>
-              <button @click="receiptCode = generateReceiptCode()" class="text-slate-500 hover:text-slate-300 transition-colors">
-                <RefreshCw class="w-3.5 h-3.5" />
-              </button>
+          <div class="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-3">
+            <div>
+              <span class="text-slate-300 text-sm font-semibold block">Kode Struk</span>
+              <span class="text-[11px] text-slate-500">Nomor urut otomatis dibuat oleh sistem saat bayar</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono font-bold text-amber-400 tracking-wider text-xs bg-slate-900 border border-slate-700 px-2.5 py-1 rounded-lg">
+                AUTO (#)
+              </span>
             </div>
           </div>
 
@@ -488,16 +498,16 @@
       </div>
     </Transition>
 
-    <!-- Void Modal -->
+    <!-- Void Modal with PIN Authorization -->
     <Transition name="modal">
       <div v-if="voidModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeVoidModal" />
-        <div class="relative bg-slate-900 border border-red-500/30 rounded-2xl w-full max-w-sm shadow-2xl z-10">
+        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl z-10">
           <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
-            <div class="flex items-center gap-2">
-              <AlertTriangle class="w-5 h-5 text-red-400" />
+            <div class="flex items-center gap-2 text-rose-400">
+              <AlertTriangle class="w-5 h-5 flex-shrink-0" />
               <div>
-                <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Void Transaksi</p>
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Otorisasi Void Transaksi</p>
                 <h3 class="font-bold text-slate-100 mt-0.5">{{ voidModal.transaction?.receipt_code }}</h3>
               </div>
             </div>
@@ -506,33 +516,62 @@
             </button>
           </div>
           <div class="p-5 flex flex-col gap-4">
-            <p class="text-sm text-slate-400">
-              Transaksi sebesar <strong class="text-red-400">{{ formatRupiah(voidModal.transaction?.total_amount) }}</strong> akan di-void. Tindakan ini tidak dapat dibatalkan.
+            <p class="text-xs text-slate-400">
+              Transaksi sebesar <strong class="text-rose-400">{{ formatRupiah(voidModal.transaction?.total_amount) }}</strong> akan di-void. Membutuhkan verifikasi supervisor.
             </p>
+
+            <!-- Supervisor PIN -->
             <div>
-              <label class="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2 block">Alasan Void <span class="text-red-400">*</span></label>
+              <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1.5">
+                <Lock class="w-3.5 h-3.5 text-amber-400" />
+                <span>PIN Supervisor / Admin</span>
+                <span class="text-rose-400">*</span>
+              </label>
+              <input
+                v-model="voidModal.pin"
+                type="password"
+                maxlength="6"
+                inputmode="numeric"
+                placeholder="Masukkan 6-digit PIN"
+                class="w-full bg-slate-800 border border-slate-700 focus:border-rose-500 rounded-xl px-4 py-2.5 text-center text-lg font-mono tracking-widest text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-rose-500/30 transition-colors"
+                @keydown.enter="confirmVoid"
+              />
+              <p v-if="voidModal.pinError" class="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                <AlertCircle class="w-3 h-3" />
+                {{ voidModal.pinError }}
+              </p>
+            </div>
+
+            <!-- Void Reason -->
+            <div>
+              <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1.5 block">
+                Alasan Void <span class="text-rose-400">*</span>
+              </label>
               <textarea
                 v-model="voidModal.reason"
-                placeholder="Masukkan alasan void…"
-                rows="3"
-                class="w-full bg-slate-800 border border-slate-700 focus:border-red-500 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500/30 transition-colors resize-none"
+                placeholder="Contoh: Salah nominal, pembeli membatalkan pesanan…"
+                rows="2"
+                class="w-full bg-slate-800 border border-slate-700 focus:border-rose-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-rose-500/30 transition-colors resize-none"
               />
             </div>
-            <div class="flex gap-2">
+
+            <div class="flex gap-2 pt-1">
               <button
+                type="button"
                 @click="closeVoidModal"
-                class="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
+                class="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
               >
                 Batal
               </button>
               <button
+                type="button"
                 @click="confirmVoid"
-                :disabled="!voidModal.reason.trim() || voidModal.processing"
-                class="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-red-500 hover:bg-red-400 text-white transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                :disabled="!voidModal.reason.trim() || !voidModal.pin || voidModal.pin.length < 6 || voidModal.processing"
+                class="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-red-600 hover:bg-red-500 text-white transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20"
               >
                 <Loader2 v-if="voidModal.processing" class="w-4 h-4 animate-spin" />
                 <XCircle v-else class="w-4 h-4" />
-                Void Transaksi
+                Konfirmasi Void
               </button>
             </div>
           </div>
@@ -668,14 +707,24 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   ShoppingCart, CalendarDays, Hash, X, Plus, CreditCard, Clock,
   ChevronUp, AlertCircle, CheckCircle, Loader2, RefreshCw,
   Smartphone, Banknote, AlertTriangle, XCircle, ShieldCheck,
-  Receipt, Copy, Check
+  Receipt, Copy, Check, LogOut, Lock
 } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase.js'
-import { formatRupiah, generateReceiptCode } from '@/lib/currency.js'
+import { useAuth } from '@/lib/useAuth.js'
+import { formatRupiah } from '@/lib/currency.js'
+
+const router = useRouter()
+const { signOut } = useAuth()
+
+async function handleLogout() {
+  await signOut()
+  router.push('/login')
+}
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -693,7 +742,7 @@ const recentTransactions = ref([])
 
 const cart = ref([])
 const paymentMethod = ref('QRIS')
-const receiptCode = ref(generateReceiptCode())
+const receiptCode = ref('AUTO')
 
 const cashTendered = ref(null)
 const cashTenderedDisplay = ref('')
@@ -779,31 +828,58 @@ function removeFromCart(index) {
   cart.value.splice(index, 1)
 }
 
-// ─── Void Modal ───────────────────────────────────────────────────────────────
+// ─── Void Modal with Supervisor PIN ──────────────────────────────────────────
+
+const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '000000'
 
 const voidModal = ref({
   open: false,
   transaction: null,
   reason: '',
+  pin: '',
+  pinError: '',
   processing: false
 })
 
 function openVoidModal(tx) {
-  voidModal.value = { open: true, transaction: tx, reason: '', processing: false }
+  voidModal.value = {
+    open: true,
+    transaction: tx,
+    reason: '',
+    pin: '',
+    pinError: '',
+    processing: false
+  }
 }
 
 function closeVoidModal() {
-  voidModal.value.open = false
+  voidModal.value = {
+    open: false,
+    transaction: null,
+    reason: '',
+    pin: '',
+    pinError: '',
+    processing: false
+  }
 }
 
 async function confirmVoid() {
-  const { transaction, reason } = voidModal.value
+  const { transaction, reason, pin } = voidModal.value
   if (!reason.trim()) return
+  if (pin !== ADMIN_PIN) {
+    voidModal.value.pinError = 'PIN Supervisor / Admin salah!'
+    return
+  }
+  voidModal.value.pinError = ''
   voidModal.value.processing = true
   try {
     const { error } = await supabase
       .from('transactions')
-      .update({ status: 'VOIDED', void_reason: reason.trim() })
+      .update({
+        status: 'VOIDED',
+        void_reason: reason.trim(),
+        voided_at: new Date().toISOString()
+      })
       .eq('id', transaction.id)
     if (error) throw error
     showSuccess('Transaksi berhasil di-void.')
@@ -997,6 +1073,7 @@ async function fetchRecentTransactions() {
         change_amount,
         status,
         void_reason,
+        voided_at,
         created_at,
         transaction_items (
           id,
@@ -1025,7 +1102,7 @@ async function fetchRecentTransactions() {
 
 async function onEventChange() {
   cart.value = []
-  receiptCode.value = generateReceiptCode()
+  receiptCode.value = 'AUTO'
   await Promise.all([fetchTenants(), fetchRecentTransactions()])
   subscribeRealtime()
 }
@@ -1078,12 +1155,12 @@ async function processPayment() {
       recordedChange = recordedCashTendered - cartTotal.value
     }
 
-    // 1. Insert transaction
+    // 1. Insert transaction with automatic sequential receipt code generated by DB trigger
     const { data: txData, error: txError } = await supabase
       .from('transactions')
       .insert({
         event_id: selectedEventId.value,
-        receipt_code: receiptCode.value,
+        receipt_code: 'AUTO',
         payment_method: paymentMethod.value,
         total_amount: cartTotal.value,
         cash_tendered: recordedCashTendered,
@@ -1115,7 +1192,7 @@ async function processPayment() {
     // 3. Prepare receipt data before clearing cart
     const activeEv = events.value.find(e => e.id === selectedEventId.value)
     const completedItems = [...cart.value]
-    const completedCode = txData.receipt_code || receiptCode.value
+    const completedCode = txData.receipt_code || 'POS-0001'
     const completedTx = {
       id: transactionId,
       receipt_code: completedCode,
@@ -1127,11 +1204,11 @@ async function processPayment() {
       created_at: txData.created_at || new Date().toISOString()
     }
 
-    // Clear cart + reset cash + regenerate receipt code
+    // Clear cart + reset cash + keep auto indicator
     cart.value = []
     cashTendered.value = null
     cashTenderedDisplay.value = ''
-    receiptCode.value = generateReceiptCode()
+    receiptCode.value = 'AUTO'
 
     // Open Digital Receipt Modal
     receiptModal.value = {

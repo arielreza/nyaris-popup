@@ -56,16 +56,18 @@ nyaris-popup/
 │   │   └── DateRangePicker.vue — Hotel-style date range picker with continuous emerald highlight strip
 │   ├── lib/
 │   │   ├── supabase.js         — Supabase client singleton (reads env vars, throws if missing)
+│   │   ├── useAuth.js          — Reactive auth state + Supabase login/logout session composable
 │   │   ├── currency.js         — formatRupiah(amount) and generateReceiptCode()
 │   │   ├── useEvents.js        — Vue composable: reactive events state + fetchEvents/createEvent
 │   │   └── exportSettlementPdf.js — Client-side PDF generator (event settlement report & tenant slips via jsPDF)
 │   ├── router/
-│   │   └── index.js            — Vue Router configuration (/, /admin, /tenant/:token)
+│   │   └── index.js            — Vue Router configuration (/, /admin, /login, /tenant/:token) with auth guard
 │   ├── views/
+│   │   ├── LoginView.vue          — Route /login — Staff authentication page (IMPLEMENTED)
 │   │   ├── CashierView.vue        — Route /   — Central cashier POS terminal (IMPLEMENTED)
 │   │   ├── AdminDashboardView.vue — Route /admin — Organizer management & settlements (IMPLEMENTED)
 │   │   └── TenantPortalView.vue   — Route /tenant/:token — Tenant's live revenue portal (IMPLEMENTED)
-│   ├── App.vue                 — Root component: sets bg-slate-950 wrapper, renders <router-view>
+│   ├── App.vue                 — Root component: sets bg-slate-950 wrapper, initializes auth, renders <router-view>
 │   ├── main.js                 — App bootstrap: creates Vue app, registers router, mounts to #app
 │   └── style.css               — Global Tailwind directives + scrollbar styles + .rupiah utility
 ├── index.html                  — HTML entry point with #app mount point
@@ -164,14 +166,21 @@ A single cashier transaction (a "receipt"), which may contain items from multipl
 |--------|------|-----------|-------------|
 | `id` | `uuid` | PK, `DEFAULT gen_random_uuid()` | Unique transaction identifier |
 | `event_id` | `uuid` | `REFERENCES events(id)` | The event this transaction belongs to |
-| `receipt_code` | `text` | `UNIQUE` | Human-readable code, e.g. `POS-8492` |
+| `receipt_code` | `text` | `UNIQUE` | Sequential receipt code (e.g. `NYR-0001`, `BZR-0042`) |
 | `payment_method` | `text` | `CHECK IN ('QRIS','CASH')` | How payment was made |
 | `total_amount` | `numeric` | `DEFAULT 0` | Sum of all item `gross_amount`s |
 | `cash_tendered` | `numeric(12,2)` | — | Cash received from customer (for CASH transactions) |
 | `change_amount` | `numeric(12,2)` | — | Change returned to customer (for CASH transactions) |
 | `status` | `text` | `DEFAULT 'COMPLETED' CHECK IN ('COMPLETED','VOIDED')` | Transaction state |
-| `void_reason` | `text` | — | Reason for voiding (if applicable) |
+| `void_reason` | `text` | — | Required reason for supervisor-authorized void |
+| `voided_at` | `timestamptz` | — | Timestamp when void authorization was executed |
 | `created_at` | `timestamptz` | `DEFAULT now()` | Row creation timestamp |
+
+### Trigger: `trg_generate_receipt_code`
+
+Fires **BEFORE INSERT** on `transactions`. Generates an event-scoped, sequential, collision-free receipt code formatted as `<PREFIX>-0001` (e.g. `NYR-0001` derived from the first 3 alphanumeric characters of `events.name`):
+- Uses `pg_advisory_xact_lock(hashtext(NEW.event_id::text))` to prevent race conditions during concurrent checkouts.
+- Only fires when `NEW.receipt_code IS NULL` or `NEW.receipt_code = 'AUTO'`.
 
 ---
 
@@ -230,44 +239,43 @@ $$;
 
 ---
 
-## 5. RLS Policies
+## 5. Row Level Security (RLS) & Production Hardening
 
-Row Level Security is **enabled** on all tables. For the MVP, fully permissive policies are used to allow the anonymous (unauthenticated) role to perform all CRUD operations.
+Row Level Security is **enabled** on all tables. Production security hardening is strictly enforced:
+- Permissive `anon` direct table policies have been **completely dropped**. The public `anon` role has **zero** direct table read/write permissions.
+- Staff operations (Cashier and Admin) authenticate via Supabase Auth and execute queries under the `authenticated` role.
+- The Tenant Portal accesses data without login via a locked-down, token-scoped `SECURITY DEFINER` RPC function (`get_tenant_portal_by_token`).
 
-### Current Policies (MVP)
+### Current Policies (Production)
 
 | Table | Policy Name | Role | Operations | Condition |
 |-------|------------|------|-----------|----------|
-| `events` | `anon_all_events` | `anon` | ALL | `USING (true) WITH CHECK (true)` |
-| `master_tenants` | `anon_all_master_tenants` | `anon` | ALL | `USING (true) WITH CHECK (true)` |
-| `tenants` | `anon_all_tenants` | `anon` | ALL | `USING (true) WITH CHECK (true)` |
-| `transactions` | `anon_all_transactions` | `anon` | ALL | `USING (true) WITH CHECK (true)` |
-| `transaction_items` | `anon_all_transaction_items` | `anon` | ALL | `USING (true) WITH CHECK (true)` |
+| `master_tenants` | `authenticated_all_master_tenants` | `authenticated` | ALL | `USING (true) WITH CHECK (true)` |
+| `events` | `authenticated_all_events` | `authenticated` | ALL | `USING (true) WITH CHECK (true)` |
+| `tenants` | `authenticated_all_tenants` | `authenticated` | ALL | `USING (true) WITH CHECK (true)` |
+| `transactions` | `authenticated_all_transactions` | `authenticated` | ALL | `USING (true) WITH CHECK (true)` |
+| `transaction_items` | `authenticated_all_transaction_items` | `authenticated` | ALL | `USING (true) WITH CHECK (true)` |
 
-> [!CAUTION]
-> These policies allow **anyone** with the Supabase anon key to read, insert, update, and delete any row. This is intentional for MVP development speed but **must be replaced before production**. See Section 14 for the production TODO list.
-
-### Production Hardening Path
-
-- Replace `anon` policies with `authenticated` role checks using `auth.uid()`
-- Scope reads by event: `USING (event_id = get_active_event_for_user())`
-- Keep `get_tenant_portal_data` as `SECURITY DEFINER` — it's already safe
+> [!NOTE]
+> All raw database tables are shielded from unauthenticated access. Vendor transparency is preserved by routing vendor queries through `get_tenant_portal_by_token(uuid)` which only returns data matching the secret access token.
 
 ---
 
 ## 6. RPC Functions
 
-### `get_tenant_portal_data(p_token uuid)`
+### `get_tenant_portal_by_token(p_token uuid)` (and `get_tenant_portal_data`)
 
-The primary data endpoint for the Tenant Portal. Because it runs as `SECURITY DEFINER`, it bypasses RLS on the caller's behalf but only ever returns data scoped to the single tenant identified by `p_token`.
+The secure, token-scoped data endpoint for the Tenant Portal (`/tenant/:token`). Because it is declared as `SECURITY DEFINER`, it executes with elevated database privileges while restricting returned data strictly to the single tenant matching `p_token`.
+
+**Permissions:** `GRANT EXECUTE ON FUNCTION get_tenant_portal_by_token(uuid) TO anon, authenticated;`
 
 **Input:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `p_token` | `uuid` | The tenant's `access_token` from the `tenants` table |
+| `p_token` | `uuid` | The tenant's secret `access_token` from the `tenants` table |
 
-**Output:** A single `json` object with the following shape:
+**Output:** A single `jsonb` object with the following shape:
 
 ```json
 {
@@ -335,21 +343,33 @@ const { tenant, items, totals } = data
 
 ## 7. Routes & Views
 
-Routes are defined in `src/main.js` using `createWebHistory()` (HTML5 history mode).
+Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 history mode) with a global `beforeEach` navigation guard:
 
 | Route | View | Access | Purpose |
 |-------|------|--------|---------|
-| `/` | `CashierView.vue` | Public (MVP) | Central POS cashier terminal |
-| `/admin` | `AdminDashboardView.vue` | Public (MVP) | Organizer event/tenant management, settlements, CSV export |
-| `/tenant/:token` | `TenantPortalView.vue` | Public (token-gated) | Tenant's private live revenue portal |
+| `/login` | `LoginView.vue` | Public | Staff & Admin authentication page via Supabase Auth |
+| `/` | `CashierView.vue` | Protected (Staff Auth) | Central POS cashier terminal |
+| `/admin` | `AdminDashboardView.vue` | Protected (Staff Auth + PIN Gate) | Organizer management, settlements, PDF exports, Master Tenant directory |
+| `/tenant/:token` | `TenantPortalView.vue` | Public (Token-Gated RPC) | Tenant live revenue and sales feed portal |
+
+### `LoginView.vue` — `/login`
+
+**Status:** ✅ **Fully implemented.**
+
+**Features:**
+- Secure staff login portal authenticating against Supabase Auth (`signInWithPassword`).
+- Sleek dark-slate card with email and password inputs, show/hide password toggle, and real-time validation error alerts.
+- Smart post-login redirection returning the user to their originally intended path (e.g. `/` or `/admin`).
+
+---
 
 ### `CashierView.vue` — `/`
 
 **Status:** ✅ **Fully implemented.**
 
 **Features:**
-- Header: PopUpPOS logo, Event selector dropdown, and a subtle **Admin navigation shortcut** button (`/admin`)
-- Tenant quick-tap grid with booth number badge, tenant name, and category
+- Top Bar: PopUpPOS logo, Event selector dropdown, Admin navigation shortcut (`/admin`), and Staff Logout button (`handleLogout`).
+- Tenant quick-tap grid with booth number badge, tenant name, and category.
 - **Enhanced Amount Input Modal**:
   - Live 3-Way Split preview badge in modal header (`Venue X% • EO Y% • Tenant Z%`)
   - Live thousand-separator formatting as the cashier types (e.g. `100.000`), stripping non-digits to keep clean integer values
@@ -366,14 +386,18 @@ Routes are defined in `src/main.js` using `createWebHistory()` (HTML5 history mo
     - Displays exact change in bold emerald (`formatRupiah(cashChange)`) when tendered $\ge$ cart total.
     - If `cashTendered` is empty or 0, defaults seamlessly to exact cash (`cartTotal`), showing `Kembalian: Rp 0 (Uang Pas)`.
     - If `0 < cashTendered < cartTotal`, shows an amber/rose warning `"Kurang Rp ..."` and blocks the checkout button (`isCashInsufficient`).
-- Auto-generated receipt code format (`POS-XXXX`)
-- Transaction processing: inserts to `transactions` with `cash_tendered` and `change_amount`, batch inserts `transaction_items` with `venue_share_percent` and `organizer_share_percent` (trigger automatically calculates `venue_cut`, `organizer_cut`, and `tenant_net`)
+- **Sequential Receipt Numbering Trigger**:
+  - Cashier UI displays `"AUTO (#)"` indicating sequential numbering handled automatically by the server.
+  - On checkout, passes `receipt_code: 'AUTO'`; PostgreSQL trigger `generate_receipt_code()` locks the event (`pg_advisory_xact_lock`) and generates a collision-free sequential code (e.g. `NYR-0001`).
+- Transaction processing: inserts to `transactions` with `cash_tendered` and `change_amount`, batch inserts `transaction_items` with `venue_share_percent` and `organizer_share_percent` (trigger automatically calculates `venue_cut`, `organizer_cut`, and `tenant_net`).
 - **Digital Receipt Modal**:
   - Automatically pops up upon successful payment or when clicking on any receipt code in Recent Transactions.
   - Paper receipt styling with event title, receipt code, timestamp, payment method badge, itemized breakdown (tenant, booth, notes, gross amounts), total amount, and exact cash tendered / change if paid in CASH.
   - **"Copy Text"** action button that copies a neatly formatted POS text receipt to clipboard for easy WhatsApp sending or thermal printing.
 - Recent transactions drawer with live Supabase Realtime subscription (listening to both `transactions` and `transaction_items`), displaying expanded item breakdowns, cash tendered/change badges, and direct click-to-view digital receipt buttons.
-- Transaction Void capability with required void reason modal
+- **Protected Supervisor Void Authorization Modal**:
+  - Requires entering the 6-digit Supervisor/Admin PIN (`VITE_ADMIN_PIN`) and a mandatory void reason.
+  - Updates `transactions.status = 'VOIDED'`, `transactions.void_reason`, and `transactions.voided_at`.
 
 ---
 
@@ -382,13 +406,10 @@ Routes are defined in `src/main.js` using `createWebHistory()` (HTML5 history mo
 **Status:** ✅ **Fully implemented.**
 
 **Features:**
-- **6-Digit PIN Lock Gate (`VITE_ADMIN_PIN`)**:
-  - Route is protected by default against unauthorized access; requires entering a 6-digit PIN (configured via `VITE_ADMIN_PIN`, default `'000000'`).
-  - Session state persists in `sessionStorage` under `popuppos_admin_unlocked` until closed or locked.
-  - Interactive PIN screen with 6 box indicators featuring glowing emerald dots as digits are input.
-  - Supports both physical keyboard typing (`0–9`, `Backspace`, `Escape`) and a mobile/tablet-friendly 3×4 numeric on-screen keypad (`1–9`, `Clear`, `0`, `⌫`).
-  - Auto-verifies upon 6th digit; displays `"PIN salah, coba lagi"` with a horizontal shake animation on incorrect attempts.
-  - Header includes a dedicated `"Kunci Admin"` button to re-lock the session instantly, and a `"Kembali ke Kasir"` button on the lock screen.
+- **Two-Tier Authentication & PIN Gate**:
+  - Protected at route level by Supabase Auth (staff login).
+  - Secondary 6-digit PIN Lock Gate (`VITE_ADMIN_PIN`, default `'000000'`) for operational security on shared cashier devices.
+  - Header includes dedicated `"Kunci"` and `"Keluar"` (Logout) buttons, plus a logout button directly on the PIN lock screen.
 - **3-Tab Admin Workspace Architecture**:
   - Replaces long, cluttered single-page scrolling with a sticky, focused horizontal tab navigation bar:
     1. **`Overview & Settlement` (Default)**:

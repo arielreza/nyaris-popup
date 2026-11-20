@@ -99,12 +99,15 @@ CREATE TABLE IF NOT EXISTS transactions (
     status          text        DEFAULT 'COMPLETED'
                                 CHECK (status IN ('COMPLETED', 'VOIDED', 'VOID')),
     void_reason     text,
+    voided_at       timestamptz,
     created_at      timestamptz DEFAULT now()
 );
 
 -- Safe migration columns and constraints for existing transactions
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cash_tendered numeric(12,2);
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS change_amount numeric(12,2);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS void_reason text;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS voided_at timestamptz;
 DO $$ BEGIN
   ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_status_check;
   ALTER TABLE transactions ADD CONSTRAINT transactions_status_check CHECK (status IN ('COMPLETED', 'VOIDED', 'VOID'));
@@ -171,7 +174,67 @@ CREATE TRIGGER trg_compute_item_cuts
 
 
 -- =============================================================================
--- ROW LEVEL SECURITY
+-- TRIGGER: Sequential Collision-Free Receipt Code (<PREFIX>-0001)
+-- =============================================================================
+-- Locks/counts existing transactions for NEW.event_id using pg_advisory_xact_lock
+-- and assigns a sequential, collision-free code formatted as <PREFIX>-0001.
+-- Prefix is derived from the first 3 alphanumeric uppercase characters of events.name
+-- (defaulting to 'POS'), overriding any empty, null, or 'AUTO' client placeholder.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION generate_receipt_code()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_event_name text;
+    v_prefix     text;
+    v_seq        integer;
+BEGIN
+    -- Only generate if NEW.receipt_code is NULL, empty, or 'AUTO'
+    IF NEW.receipt_code IS NULL OR TRIM(NEW.receipt_code) = '' OR UPPER(TRIM(NEW.receipt_code)) = 'AUTO' THEN
+        -- Concurrency-safe advisory transaction lock per event
+        IF NEW.event_id IS NOT NULL THEN
+            PERFORM pg_advisory_xact_lock(hashtext(NEW.event_id::text));
+            SELECT name INTO v_event_name FROM events WHERE id = NEW.event_id;
+        END IF;
+
+        -- Extract prefix (first 3 alphanumeric uppercase chars), fallback to 'POS'
+        IF v_event_name IS NOT NULL THEN
+            v_prefix := UPPER(REGEXP_REPLACE(v_event_name, '[^a-zA-Z0-9]', '', 'g'));
+            IF LENGTH(v_prefix) >= 3 THEN
+                v_prefix := SUBSTRING(v_prefix FROM 1 FOR 3);
+            ELSIF LENGTH(v_prefix) > 0 THEN
+                v_prefix := RPAD(v_prefix, 3, 'X');
+            ELSE
+                v_prefix := 'POS';
+            END IF;
+        ELSE
+            v_prefix := 'POS';
+        END IF;
+
+        -- Count existing transactions for this event + 1
+        SELECT COALESCE(COUNT(*), 0) + 1
+        INTO v_seq
+        FROM transactions
+        WHERE event_id = NEW.event_id;
+
+        NEW.receipt_code := v_prefix || '-' || LPAD(v_seq::text, 4, '0');
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_generate_receipt_code ON transactions;
+CREATE TRIGGER trg_generate_receipt_code
+    BEFORE INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_receipt_code();
+
+
+-- =============================================================================
+-- ROW LEVEL SECURITY (Strict Lockdown: Authenticated CRUD only, Anon via RPC)
 -- =============================================================================
 
 ALTER TABLE master_tenants    ENABLE ROW LEVEL SECURITY;
@@ -180,73 +243,33 @@ ALTER TABLE tenants           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transaction_items ENABLE ROW LEVEL SECURITY;
 
--- master_tenants policies
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'master_tenants' AND policyname = 'anon_all_master_tenants'
-  ) THEN
-    CREATE POLICY anon_all_master_tenants ON master_tenants
-      FOR ALL TO anon USING (true) WITH CHECK (true);
-  END IF;
-END $$;
+-- 1. Drop all permissive anon policies (zero direct table access for anon)
+DROP POLICY IF EXISTS anon_all_master_tenants ON master_tenants;
+DROP POLICY IF EXISTS anon_all_events ON events;
+DROP POLICY IF EXISTS anon_all_tenants ON tenants;
+DROP POLICY IF EXISTS anon_all_transactions ON transactions;
+DROP POLICY IF EXISTS anon_all_transaction_items ON transaction_items;
 
--- events policies
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'events' AND policyname = 'anon_all_events'
-  ) THEN
-    CREATE POLICY anon_all_events ON events
-      FOR ALL TO anon USING (true) WITH CHECK (true);
-  END IF;
-END $$;
+-- 2. Grant full CRUD exclusively to authenticated users (Staff / Admin)
+DROP POLICY IF EXISTS authenticated_all_master_tenants ON master_tenants;
+CREATE POLICY authenticated_all_master_tenants ON master_tenants
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- tenants policies
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'tenants' AND policyname = 'anon_all_tenants'
-  ) THEN
-    CREATE POLICY anon_all_tenants ON tenants
-      FOR ALL TO anon USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'tenants' AND policyname = 'authenticated_all_tenants'
-  ) THEN
-    CREATE POLICY authenticated_all_tenants ON tenants
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS authenticated_all_events ON events;
+CREATE POLICY authenticated_all_events ON events
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- transactions policies (allows DELETE for voided transaction cleanup)
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'transactions' AND policyname = 'anon_all_transactions'
-  ) THEN
-    CREATE POLICY anon_all_transactions ON transactions
-      FOR ALL TO anon USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'transactions' AND policyname = 'authenticated_all_transactions'
-  ) THEN
-    CREATE POLICY authenticated_all_transactions ON transactions
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS authenticated_all_tenants ON tenants;
+CREATE POLICY authenticated_all_tenants ON tenants
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- transaction_items policies (allows DELETE for voided item cleanup)
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'transaction_items' AND policyname = 'anon_all_transaction_items'
-  ) THEN
-    CREATE POLICY anon_all_transaction_items ON transaction_items
-      FOR ALL TO anon USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'transaction_items' AND policyname = 'authenticated_all_transaction_items'
-  ) THEN
-    CREATE POLICY authenticated_all_transaction_items ON transaction_items
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS authenticated_all_transactions ON transactions;
+CREATE POLICY authenticated_all_transactions ON transactions
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS authenticated_all_transaction_items ON transaction_items;
+CREATE POLICY authenticated_all_transaction_items ON transaction_items
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 
 -- =============================================================================
@@ -292,67 +315,92 @@ END $$;
 
 
 -- =============================================================================
--- RPC FUNCTION: get_tenant_portal_data
+-- TOKEN-SCOPED RPC: get_tenant_portal_by_token (SECURITY DEFINER)
 -- =============================================================================
--- Returns a JSON object containing:
---   • tenant   — tenant profile (with venue_share_percent & organizer_share_percent)
---   • items    — array of transaction items enriched with 3-way split metadata
---   • totals   — aggregated financial summary (gross, venue cut, organizer cut, combined cut, net)
---
--- SECURITY DEFINER so it can bypass RLS while only ever returning data
--- for the single tenant identified by the provided token.
+-- Safely provides tenant portal access to anon without granting table access.
+-- Returns ONLY the single tenant matching p_token, its parent event, its items,
+-- and aggregated totals. Never exposes other tenants.
 -- =============================================================================
 
-CREATE OR REPLACE FUNCTION get_tenant_portal_data(p_token uuid)
-RETURNS json
+CREATE OR REPLACE FUNCTION get_tenant_portal_by_token(p_token uuid)
+RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
     v_tenant      record;
-    v_tenant_json json;
-    v_items_json  json;
-    v_totals_json json;
+    v_event       record;
+    v_tenant_json jsonb;
+    v_event_json  jsonb;
+    v_items_json  jsonb;
+    v_totals_json jsonb;
 BEGIN
     -- Look up tenant by access_token
     SELECT
-        id,
-        event_id,
-        name,
-        category,
-        booth_number,
-        share_percent,
-        venue_share_percent,
-        organizer_share_percent,
-        bank_info,
-        payout_status,
-        created_at
+        t.id,
+        t.event_id,
+        t.name,
+        t.category,
+        t.booth_number,
+        COALESCE(t.share_percent, 10.0) AS share_percent,
+        COALESCE(t.venue_share_percent, 10.0) AS venue_share_percent,
+        COALESCE(t.organizer_share_percent, 0.0) AS organizer_share_percent,
+        t.bank_info,
+        t.payout_status,
+        t.access_token,
+        t.created_at
     INTO v_tenant
-    FROM tenants
-    WHERE access_token = p_token;
+    FROM tenants t
+    WHERE t.access_token = p_token;
 
     IF NOT FOUND THEN
-        RETURN json_build_object('error', 'Tenant not found');
+        RETURN jsonb_build_object('error', 'Tenant not found');
     END IF;
 
-    -- Build tenant profile JSON (access_token intentionally omitted)
-    v_tenant_json := json_build_object(
+    -- Look up parent event
+    SELECT
+        e.id,
+        e.name,
+        e.venue,
+        e.event_dates,
+        e.is_active,
+        e.created_at
+    INTO v_event
+    FROM events e
+    WHERE e.id = v_tenant.event_id;
+
+    -- Build tenant profile JSON
+    v_tenant_json := jsonb_build_object(
         'id',                      v_tenant.id,
         'event_id',                v_tenant.event_id,
         'name',                    v_tenant.name,
         'category',                v_tenant.category,
         'booth_number',            v_tenant.booth_number,
-        'share_percent',           COALESCE(v_tenant.share_percent, 10.0),
-        'venue_share_percent',     COALESCE(v_tenant.venue_share_percent, 10.0),
-        'organizer_share_percent', COALESCE(v_tenant.organizer_share_percent, 0.0),
+        'share_percent',           v_tenant.share_percent,
+        'venue_share_percent',     v_tenant.venue_share_percent,
+        'venue_share_pct',         v_tenant.venue_share_percent,
+        'organizer_share_percent', v_tenant.organizer_share_percent,
+        'eo_share_pct',            v_tenant.organizer_share_percent,
         'bank_info',               v_tenant.bank_info,
         'payout_status',           v_tenant.payout_status,
+        'portal_token',            v_tenant.access_token,
         'created_at',              v_tenant.created_at
     );
 
-    -- Build items array enriched with transaction metadata and 3-way split cuts
-    SELECT json_agg(row_to_json(item_row))
+    -- Build event profile JSON
+    v_event_json := jsonb_build_object(
+        'id',          v_event.id,
+        'name',        v_event.name,
+        'venue',       v_event.venue,
+        'event_dates', v_event.event_dates,
+        'status',      CASE WHEN v_event.is_active THEN 'ACTIVE' ELSE 'INACTIVE' END,
+        'is_active',   COALESCE(v_event.is_active, true),
+        'created_at',  v_event.created_at
+    );
+
+    -- Build items array enriched with transaction metadata, cuts and audit details
+    SELECT COALESCE(jsonb_agg(to_jsonb(item_row)), '[]'::jsonb)
     INTO v_items_json
     FROM (
         SELECT
@@ -370,15 +418,17 @@ BEGIN
             t.receipt_code,
             t.payment_method,
             t.created_at  AS transaction_created_at,
-            t.status       AS transaction_status
+            t.status       AS transaction_status,
+            t.void_reason,
+            t.voided_at
         FROM transaction_items ti
         JOIN transactions t ON t.id = ti.transaction_id
         WHERE ti.tenant_id = v_tenant.id
         ORDER BY t.created_at DESC
     ) item_row;
 
-    -- Build totals including separate venue cut and organizer cut
-    SELECT json_build_object(
+    -- Build totals for completed transactions only
+    SELECT jsonb_build_object(
         'total_gross',          COALESCE(SUM(ti.gross_amount), 0),
         'total_venue_cut',      COALESCE(SUM(ti.venue_cut), 0),
         'total_organizer_cut',  COALESCE(SUM(ti.organizer_cut), 0),
@@ -391,13 +441,29 @@ BEGIN
     WHERE ti.tenant_id = v_tenant.id
       AND t.status = 'COMPLETED';
 
-    RETURN json_build_object(
+    RETURN jsonb_build_object(
         'tenant', v_tenant_json,
-        'items',  COALESCE(v_items_json, '[]'::json),
+        'event',  v_event_json,
+        'items',  v_items_json,
         'totals', v_totals_json
     );
 END;
 $$;
+
+-- Grant EXECUTE permission to anon and authenticated
+GRANT EXECUTE ON FUNCTION get_tenant_portal_by_token(uuid) TO anon, authenticated;
+
+-- Backwards-compatible get_tenant_portal_data
+CREATE OR REPLACE FUNCTION get_tenant_portal_data(p_token uuid)
+RETURNS json
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT get_tenant_portal_by_token(p_token)::json;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_tenant_portal_data(uuid) TO anon, authenticated;
 
 
 -- =============================================================================

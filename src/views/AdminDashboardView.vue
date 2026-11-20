@@ -33,13 +33,22 @@ import {
   CheckCircle2,
   FileText,
   MessageSquare,
+  LogOut,
 } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase.js'
+import { useAuth } from '@/lib/useAuth.js'
 import { formatRupiah } from '@/lib/currency.js'
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import { generateEventSettlementPdf, generateTenantSettlementPdf } from '@/lib/exportSettlementPdf.js'
 
 const router = useRouter()
+const { signOut } = useAuth()
+
+async function handleLogout() {
+  lockAdmin()
+  await signOut()
+  router.push('/login')
+}
 
 // ─── PIN Gate State ───────────────────────────────────────────────────────────
 
@@ -1566,8 +1575,8 @@ async function copyTenantWaSummary(row) {
         </button>
       </div>
 
-      <!-- Return to Cashier Link -->
-      <div class="mt-8">
+      <!-- Return to Cashier & Logout Links -->
+      <div class="mt-8 flex items-center gap-2">
         <button
           type="button"
           @click="router.push('/')"
@@ -1575,6 +1584,15 @@ async function copyTenantWaSummary(row) {
         >
           <ArrowLeft class="w-4 h-4 text-emerald-400" />
           Kembali ke Kasir
+        </button>
+        <button
+          type="button"
+          @click="handleLogout"
+          class="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-rose-400 bg-slate-900/80 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 px-3 py-2 rounded-xl transition-colors cursor-pointer"
+          title="Keluar dari akun staf"
+        >
+          <LogOut class="w-3.5 h-3.5" />
+          Keluar
         </button>
       </div>
     </div>
@@ -1593,11 +1611,19 @@ async function copyTenantWaSummary(row) {
         <div class="flex items-center gap-2.5">
           <button
             @click="lockAdmin"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-3 py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 border border-slate-700 hover:border-amber-500/30 px-3 py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer"
             title="Kunci sesi Admin"
           >
             <Lock class="w-3.5 h-3.5" />
             <span>Kunci</span>
+          </button>
+          <button
+            @click="handleLogout"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-3 py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer"
+            title="Keluar dari akun staf"
+          >
+            <LogOut class="w-3.5 h-3.5" />
+            <span>Keluar</span>
           </button>
           <button
             @click="router.push('/')"
