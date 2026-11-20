@@ -465,6 +465,8 @@ async function createEvent() {
         default_share_percent: totalDefaultShare,
         venue_share_percent: venueShare,
         organizer_share_percent: orgShare,
+        status: 'ACTIVE',
+        is_active: true,
       }
     ])
     .select()
@@ -687,6 +689,7 @@ const editEventForm = ref({
   event_dates: '',
   venue_share_percent: 10,
   organizer_share_percent: 0,
+  status: 'ACTIVE',
   syncTenants: true,
 })
 const editStartDate = ref(todayStr)
@@ -713,6 +716,7 @@ function openEditEvent() {
     event_dates: selectedEvent.value.event_dates || '',
     venue_share_percent: Number(selectedEvent.value.venue_share_percent ?? 10),
     organizer_share_percent: Number(selectedEvent.value.organizer_share_percent ?? 0),
+    status: selectedEvent.value.status || (selectedEvent.value.is_active === false ? 'COMPLETED' : 'ACTIVE'),
     syncTenants: true,
   }
   editStartDate.value = todayStr
@@ -734,6 +738,7 @@ async function saveEditEvent() {
   const finalDates = editDateChanged.value
     ? formatEventDates(editStartDate.value, editEndDate.value)
     : (editEventForm.value.event_dates || '')
+  const finalStatus = editEventForm.value.status || 'ACTIVE'
 
   const { data: updatedEvent, error: evError } = await supabase
     .from('events')
@@ -744,6 +749,8 @@ async function saveEditEvent() {
       venue_share_percent: venueShare,
       organizer_share_percent: orgShare,
       default_share_percent: totalShare,
+      status: finalStatus,
+      is_active: finalStatus === 'ACTIVE',
     })
     .eq('id', selectedEventId.value)
     .select()
@@ -779,6 +786,39 @@ async function saveEditEvent() {
 
   savingEditEvent.value = false
   showEditEventForm.value = false
+  showToast('success', `Pengaturan event "${updatedEvent.name}" berhasil disimpan!`)
+}
+
+const togglingEventStatus = ref(false)
+async function toggleEventStatus(ev) {
+  if (!ev || togglingEventStatus.value) return
+  const currentStatus = ev.status || (ev.is_active === false ? 'COMPLETED' : 'ACTIVE')
+  const newStatus = currentStatus === 'ACTIVE' ? 'COMPLETED' : 'ACTIVE'
+  togglingEventStatus.value = true
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .update({
+        status: newStatus,
+        is_active: newStatus === 'ACTIVE',
+      })
+      .eq('id', ev.id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    const idx = events.value.findIndex((e) => e.id === ev.id)
+    if (idx !== -1) {
+      events.value[idx] = { ...events.value[idx], ...data, status: newStatus, is_active: newStatus === 'ACTIVE' }
+    }
+    const label = newStatus === 'ACTIVE' ? 'diaktifkan kembali' : 'ditandai selesai'
+    showToast('success', `Event "${ev.name}" berhasil ${label}!`)
+  } catch (err) {
+    showToast('error', `Gagal mengubah status event: ${err.message}`)
+  } finally {
+    togglingEventStatus.value = false
+  }
 }
 
 // ─── Quick Per-Tenant Share Override Edit ─────────────────────────────────────
@@ -1851,6 +1891,15 @@ async function copyTenantWaSummary(row) {
           </div>
 
           <div v-if="selectedEvent" class="flex items-center gap-2 text-xs flex-wrap">
+            <span
+              :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
+                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'"
+              class="px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1.5"
+            >
+              <span class="w-1.5 h-1.5 rounded-full" :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'bg-amber-400' : 'bg-emerald-400'"></span>
+              {{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}
+            </span>
             <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
               Venue: <strong class="text-white">{{ selectedEvent.venue || '—' }}</strong>
             </span>
@@ -2212,11 +2261,40 @@ async function copyTenantWaSummary(row) {
             >
               <option value="" disabled>-- Select an event --</option>
               <option v-for="ev in events" :key="ev.id" :value="ev.id">
-                {{ ev.name }} {{ ev.event_dates ? `(${ev.event_dates})` : '' }}
+                [{{ (ev.status === 'COMPLETED' || ev.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}] {{ ev.name }} {{ ev.event_dates ? `(${ev.event_dates})` : '' }}
               </option>
             </select>
             <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
+
+          <!-- Status Badge -->
+          <div v-if="selectedEvent" class="flex items-center">
+            <span
+              :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
+                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'"
+              class="px-2.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5"
+            >
+              <span class="w-2 h-2 rounded-full" :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'bg-amber-400' : 'bg-emerald-400'"></span>
+              {{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}
+            </span>
+          </div>
+
+          <!-- Toggle Status Button -->
+          <button
+            v-if="selectedEvent"
+            @click="toggleEventStatus(selectedEvent)"
+            :disabled="togglingEventStatus"
+            :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
+              ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border-emerald-500/30'
+              : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border-amber-500/30'"
+            class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm border transition-colors cursor-pointer disabled:opacity-60"
+            :title="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'Aktifkan kembali event ini agar muncul di kasir' : 'Tandai event ini selesai (arsipkan dari kasir)'"
+          >
+            <Loader2 v-if="togglingEventStatus" class="w-4 h-4 animate-spin" />
+            <RefreshCw v-else class="w-4 h-4" />
+            <span>{{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'Aktifkan Kembali' : 'Tandai Selesai' }}</span>
+          </button>
 
           <button
             v-if="selectedEvent"
@@ -2368,6 +2446,16 @@ async function copyTenantWaSummary(row) {
                   placeholder="e.g. Lapangan Banteng"
                   class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder-slate-500"
                 />
+              </div>
+              <div class="space-y-1 sm:col-span-2">
+                <label class="text-xs font-medium text-slate-400">Status Event</label>
+                <select
+                  v-model="editEventForm.status"
+                  class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                >
+                  <option value="ACTIVE">ACTIVE (Sedang Berjalan / Kasir Aktif)</option>
+                  <option value="COMPLETED">COMPLETED (Selesai / Diarsipkan dari Kasir)</option>
+                </select>
               </div>
               <div class="space-y-1 sm:col-span-2">
                 <div class="flex items-center justify-between flex-wrap gap-2 mb-1">

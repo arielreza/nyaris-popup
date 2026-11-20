@@ -107,7 +107,8 @@ The top-level entity for each pop-up market event.
 | `default_share_percent` | `numeric` | `DEFAULT 10.0` | Legacy/combined default share % (`venue_share_percent + organizer_share_percent`) |
 | `venue_share_percent` | `numeric` | `DEFAULT 10.0` | Default venue location revenue share % for this event |
 | `organizer_share_percent` | `numeric` | `DEFAULT 0.0` | Default event organizer/EO revenue share % for this event |
-| `is_active` | `boolean` | `DEFAULT true` | Whether the event is currently running |
+| `status` | `text` | `NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'COMPLETED'))` | Operational lifecycle status of the event |
+| `is_active` | `boolean` | `DEFAULT true` | Backward-compatible boolean mirroring `status === 'ACTIVE'` |
 | `created_at` | `timestamptz` | `DEFAULT now()` | Row creation timestamp |
 
 ---
@@ -369,6 +370,10 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
 **Status:** ✅ **Fully implemented.**
 
 **Features:**
+- **Active Event Auto-Selection & Filtering**:
+  - Automatically queries and filters `events` to only display active events (`status === 'ACTIVE'` or `is_active !== false`), completely hiding completed/archived events from the cashier UI.
+  - Zero-click readiness: auto-selects the first active event on load and invokes `onEventChange()` to load tenants immediately without cashier manual interaction.
+  - Clear empty state when 0 active events exist: displays `"Tidak ada event aktif saat ini. Aktifkan event di menu Admin."` with direct CTA button navigating to `/admin`.
 - Top Bar: PopUpPOS logo, Event selector dropdown, Admin navigation shortcut (`/admin`), and Staff Logout button (`handleLogout`).
 - Tenant quick-tap grid with booth number badge, tenant name, and category.
 - **Enhanced Amount Input Modal**:
@@ -432,7 +437,11 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
          - **Per-Row `PDF` Slip (`generateTenantSettlementPdf`)**: Produces an individual vendor settlement slip with clean bank account alignment, a single unified `Potongan Bagi Hasil (X%)` line (strictly hiding internal Venue vs EO split from tenants), prominent Net Payout highlight card, and a chronological audit log table of all non-voided transaction items for that tenant.
          - **One-Click WhatsApp Settlement Summary (`copyTenantWaSummary`)**: A per-tenant "WA" action button copying a cleanly formatted WhatsApp recap message to clipboard with instant toast notification, detailing gross sales, combined share % & deduction amount, net payout, destination bank info, payout status, and tenant portal link—strictly hiding internal Venue vs EO splits.
     2. **`Event & Lineup`**:
-       - **Event Management**: Event selector, collapsible Event Creator powered by `DateRangePicker.vue` with 3-way split inputs, and "Edit Event" panel with bulk share sync checkbox (`"Terapkan default share % baru ke semua tenant di event ini"`).
+       - **Event Management & Lifecycle Status**:
+         - Event selector with status tags (`[ACTIVE]` / `[COMPLETED]`), active status badge (emerald `ACTIVE` / amber `COMPLETED`), and active event metadata badges in both Overview and Event Management tabs.
+         - **1-Click Status Toggle Button**: `"Tandai Selesai"` (archives event from cashier) or `"Aktifkan Kembali"` (restores event to cashier) with instant Supabase update, reactive local state sync, and confirmation toast.
+         - Collapsible Event Creator powered by `DateRangePicker.vue` with 3-way split inputs, creating events with `status: 'ACTIVE'` and `is_active: true`.
+         - "Edit Event" panel with Status selector dropdown (`ACTIVE` / `COMPLETED`), date picker, 3-way split inputs, and bulk share sync checkbox (`"Terapkan default share % baru ke semua tenant di event ini"`).
        - **Event Lineup Section (Streamlined Workflow)**:
          - Eliminates redundant "Import Past" modal — `master_tenants` serves as the single source of truth for all brands across past and future events.
          - **Only 2 Clean Action Buttons**:

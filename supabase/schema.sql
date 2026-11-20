@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS events (
     default_share_percent   numeric     DEFAULT 10.0,
     venue_share_percent     numeric     DEFAULT 10.0,
     organizer_share_percent numeric     DEFAULT 0.0,
+    status                  text        NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'COMPLETED')),
     is_active               boolean     DEFAULT true,
     created_at              timestamptz DEFAULT now()
 );
@@ -59,6 +60,12 @@ CREATE TABLE IF NOT EXISTS events (
 -- Safe migration columns for existing databases
 ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_share_percent numeric DEFAULT 10.0;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_share_percent numeric DEFAULT 0.0;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'ACTIVE';
+DO $$ BEGIN
+  ALTER TABLE events DROP CONSTRAINT IF EXISTS events_status_check;
+  ALTER TABLE events ADD CONSTRAINT events_status_check CHECK (status IN ('ACTIVE', 'COMPLETED'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- tenants
