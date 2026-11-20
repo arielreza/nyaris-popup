@@ -1723,7 +1723,7 @@ async function copyTenantWaSummary(row) {
           :key="n"
           type="button"
           @click="appendDigit(String(n))"
-          class="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 hover:border-slate-700 text-xl font-bold text-slate-100 flex items-center justify-center transition-all duration-100 shadow-sm cursor-pointer select-none"
+          class="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 hover:border-slate-700 text-xl font-bold text-slate-100 flex items-center justify-center transition-all duration-100 shadow-sm cursor-pointer touch-manipulation select-none"
         >
           {{ n }}
         </button>
@@ -1732,7 +1732,7 @@ async function copyTenantWaSummary(row) {
         <button
           type="button"
           @click="clearPin"
-          class="h-14 rounded-2xl bg-slate-900/60 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all duration-100 uppercase tracking-wider cursor-pointer select-none"
+          class="h-14 rounded-2xl bg-slate-900/60 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all duration-100 uppercase tracking-wider cursor-pointer touch-manipulation select-none"
         >
           Clear
         </button>
@@ -1741,7 +1741,7 @@ async function copyTenantWaSummary(row) {
         <button
           type="button"
           @click="appendDigit('0')"
-          class="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 hover:border-slate-700 text-xl font-bold text-slate-100 flex items-center justify-center transition-all duration-100 shadow-sm cursor-pointer select-none"
+          class="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 hover:border-slate-700 text-xl font-bold text-slate-100 flex items-center justify-center transition-all duration-100 shadow-sm cursor-pointer touch-manipulation select-none"
         >
           0
         </button>
@@ -1750,7 +1750,7 @@ async function copyTenantWaSummary(row) {
         <button
           type="button"
           @click="deleteDigit"
-          class="h-14 rounded-2xl bg-slate-900/60 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all duration-100 cursor-pointer select-none"
+          class="h-14 rounded-2xl bg-slate-900/60 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all duration-100 cursor-pointer touch-manipulation select-none"
           title="Hapus"
         >
           <Delete class="w-5 h-5" />

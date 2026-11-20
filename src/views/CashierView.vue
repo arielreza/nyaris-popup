@@ -281,7 +281,7 @@
                   <button
                     type="button"
                     @click="setExactCash"
-                    class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
+                    class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg px-2.5 py-1 transition-colors cursor-pointer touch-manipulation select-none"
                   >
                     Uang Pas
                   </button>
@@ -315,7 +315,7 @@
                     :key="chip"
                     type="button"
                     @click="addCashTenderedChip(chip)"
-                    class="py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white transition-all active:scale-95 cursor-pointer"
+                    class="py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white transition-all active:scale-95 cursor-pointer touch-manipulation select-none"
                   >
                     +{{ chip >= 1000 ? (chip / 1000) + 'k' : chip }}
                   </button>
@@ -620,35 +620,35 @@
                 <button
                   type="button"
                   @click="addQuickAmount(10000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95"
+                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
                 >
                   +10.000
                 </button>
                 <button
                   type="button"
                   @click="addQuickAmount(25000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95"
+                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
                 >
                   +25.000
                 </button>
                 <button
                   type="button"
                   @click="addQuickAmount(50000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95"
+                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
                 >
                   +50.000
                 </button>
                 <button
                   type="button"
                   @click="addQuickAmount(100000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95"
+                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
                 >
                   +100.000
                 </button>
                 <button
                   type="button"
                   @click="clearAmount"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors active:scale-95 ml-auto"
+                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors active:scale-95 ml-auto cursor-pointer touch-manipulation select-none"
                 >
                   Clear
                 </button>
@@ -722,6 +722,41 @@
                 <AlertCircle class="w-3 h-3" />
                 {{ voidModal.pinError }}
               </p>
+
+              <!-- Touch-friendly 3x4 Keypad for Void PIN -->
+              <div class="grid grid-cols-3 gap-1.5 w-full max-w-[220px] mx-auto pt-2">
+                <button
+                  v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]"
+                  :key="n"
+                  type="button"
+                  @click="appendVoidPinDigit(String(n))"
+                  class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-base font-bold text-slate-100 flex items-center justify-center transition-all shadow-sm cursor-pointer touch-manipulation select-none"
+                >
+                  {{ n }}
+                </button>
+                <button
+                  type="button"
+                  @click="clearVoidPin"
+                  class="h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700 active:scale-95 border border-slate-700 text-[11px] font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all uppercase tracking-wider cursor-pointer touch-manipulation select-none"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  @click="appendVoidPinDigit('0')"
+                  class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-base font-bold text-slate-100 flex items-center justify-center transition-all shadow-sm cursor-pointer touch-manipulation select-none"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  @click="deleteVoidPinDigit"
+                  class="h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
+                  title="Hapus"
+                >
+                  <Delete class="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <!-- Void Reason -->
@@ -894,7 +929,7 @@ import {
   ShoppingCart, CalendarDays, Hash, X, Plus, CreditCard, Clock,
   ChevronUp, AlertCircle, CheckCircle, Loader2, RefreshCw,
   Smartphone, Banknote, AlertTriangle, XCircle, ShieldCheck,
-  Receipt, Copy, Check, LogOut, Lock, Search
+  Receipt, Copy, Check, LogOut, Lock, Search, Delete
 } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase.js'
 import { useAuth } from '@/lib/useAuth.js'
@@ -1127,6 +1162,23 @@ function closeVoidModal() {
     pinError: '',
     processing: false
   }
+}
+
+function appendVoidPinDigit(digit) {
+  if ((voidModal.value.pin || '').length < 6) {
+    voidModal.value.pin = (voidModal.value.pin || '') + digit
+    voidModal.value.pinError = ''
+  }
+}
+
+function clearVoidPin() {
+  voidModal.value.pin = ''
+  voidModal.value.pinError = ''
+}
+
+function deleteVoidPinDigit() {
+  voidModal.value.pin = (voidModal.value.pin || '').slice(0, -1)
+  voidModal.value.pinError = ''
 }
 
 async function confirmVoid() {

@@ -6,6 +6,12 @@
   body {
     @apply bg-slate-950 text-slate-100 font-sans antialiased;
   }
+  button,
+  [role="button"],
+  select,
+  input {
+    touch-action: manipulation;
+  }
   ::-webkit-scrollbar {
     @apply w-1.5;
   }

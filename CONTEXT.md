@@ -424,8 +424,11 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
   - Widescreen container width (`max-w-4xl`) on tablet/desktop.
 - **Protected Supervisor Void Authorization Modal**:
   - Requires entering the 6-digit Supervisor/Admin PIN (`VITE_ADMIN_PIN`) and a mandatory void reason.
+  - Features an on-screen 3x4 touch-friendly keypad with `touch-manipulation select-none` for rapid entry on mobile/tablet devices.
   - Updates `transactions.status = 'VOIDED'`, `transactions.void_reason`, and `transactions.voided_at`.
-- **Mobile Responsiveness Polish (< 640px / iPhone 15 390px Viewport)**:
+- **Mobile Responsiveness Polish & Touch Optimization (< 640px / iPhone 15 390px Viewport)**:
+  - Global viewport lock (`maximum-scale=1.0, user-scalable=no, viewport-fit=cover`) and `touch-action: manipulation;` on interactive elements to prevent accidental double-tap zoom delays on iOS Safari/Chrome.
+  - `touch-manipulation select-none` applied to all PIN keypad buttons (Admin lock & supervisor void) and quick cash chips.
   - Header bar: truncated event selector (`max-w-[125px] xs:max-w-[150px] sm:max-w-[180px]`), compact Admin navigation and logout buttons, non-wrapping brand title.
   - Generous bottom clearance (`pb-36 sm:pb-28 lg:pb-12`) ensuring checkout button and cart actions never collide with the drawer toggle.
   - iOS home indicator safety via `style="padding-bottom: env(safe-area-inset-bottom, 0px);"` on fixed bottom drawer toggle.
