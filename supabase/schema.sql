@@ -97,14 +97,19 @@ CREATE TABLE IF NOT EXISTS transactions (
     cash_tendered   numeric(12,2),
     change_amount   numeric(12,2),
     status          text        DEFAULT 'COMPLETED'
-                                CHECK (status IN ('COMPLETED', 'VOIDED')),
+                                CHECK (status IN ('COMPLETED', 'VOIDED', 'VOID')),
     void_reason     text,
     created_at      timestamptz DEFAULT now()
 );
 
--- Safe migration columns for existing transactions
+-- Safe migration columns and constraints for existing transactions
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cash_tendered numeric(12,2);
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS change_amount numeric(12,2);
+DO $$ BEGIN
+  ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_status_check;
+  ALTER TABLE transactions ADD CONSTRAINT transactions_status_check CHECK (status IN ('COMPLETED', 'VOIDED', 'VOID'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- transaction_items
@@ -203,9 +208,15 @@ DO $$ BEGIN
     CREATE POLICY anon_all_tenants ON tenants
       FOR ALL TO anon USING (true) WITH CHECK (true);
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'tenants' AND policyname = 'authenticated_all_tenants'
+  ) THEN
+    CREATE POLICY authenticated_all_tenants ON tenants
+      FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  END IF;
 END $$;
 
--- transactions policies
+-- transactions policies (allows DELETE for voided transaction cleanup)
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'transactions' AND policyname = 'anon_all_transactions'
@@ -213,15 +224,27 @@ DO $$ BEGIN
     CREATE POLICY anon_all_transactions ON transactions
       FOR ALL TO anon USING (true) WITH CHECK (true);
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'transactions' AND policyname = 'authenticated_all_transactions'
+  ) THEN
+    CREATE POLICY authenticated_all_transactions ON transactions
+      FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  END IF;
 END $$;
 
--- transaction_items policies
+-- transaction_items policies (allows DELETE for voided item cleanup)
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'transaction_items' AND policyname = 'anon_all_transaction_items'
   ) THEN
     CREATE POLICY anon_all_transaction_items ON transaction_items
       FOR ALL TO anon USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'transaction_items' AND policyname = 'authenticated_all_transaction_items'
+  ) THEN
+    CREATE POLICY authenticated_all_transaction_items ON transaction_items
+      FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 END $$;
 

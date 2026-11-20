@@ -756,29 +756,101 @@ async function removeTenantFromLineup(tenant) {
   lineupError.value = ''
   if (!confirm(`Hapus tenant "${tenant.name}" dari lineup event ini?`)) return
 
-  const { error } = await supabase
-    .from('tenants')
-    .delete()
-    .eq('id', tenant.id)
+  try {
+    // 1. Query transaction_items for this tenant joined with transactions(id, status)
+    const { data: linkedItems, error: fetchErr } = await supabase
+      .from('transaction_items')
+      .select(`
+        id,
+        transaction_id,
+        transactions (
+          id,
+          status
+        )
+      `)
+      .eq('tenant_id', tenant.id)
 
-  if (error) {
-    console.error('Error removing tenant:', error)
-    if (error.code === '23503') {
-      const msg = 'Tidak dapat menghapus tenant karena sudah memiliki riwayat transaksi di event ini (hapus/void transaksi terkait terlebih dahulu jika ingin menghapus).'
+    if (fetchErr) throw fetchErr
+
+    const items = linkedItems || []
+
+    // 2. Check if there are any items belonging to active/non-void transactions
+    const activeItems = items.filter((item) => {
+      const status = item.transactions?.status
+      return status !== 'VOID' && status !== 'VOIDED'
+    })
+
+    // If active transactions exist, block deletion with clear error message
+    if (activeItems.length > 0) {
+      const msg = 'Tidak dapat menghapus tenant karena masih memiliki transaksi aktif di event ini (void transaksi terkait terlebih dahulu).'
       lineupError.value = msg
       showToast('error', msg, 6500)
-    } else {
-      const msg = `Gagal menghapus tenant: ${error.message}`
-      lineupError.value = msg
-      showToast('error', msg, 5000)
+      return
     }
-    return
-  }
 
-  tenants.value = tenants.value.filter((t) => t.id !== tenant.id)
-  allTenantsList.value = allTenantsList.value.filter((t) => t.id !== tenant.id)
-  showToast('success', `Tenant "${tenant.name}" berhasil dihapus dari lineup event.`)
-  await fetchMasterTenants()
+    // 3. If ALL linked transactions are VOID (0 active transactions): clean up voided items & empty headers
+    if (items.length > 0) {
+      const itemIdsToDelete = items.map((item) => item.id)
+      const candidateTxIds = [...new Set(items.map((item) => item.transaction_id).filter(Boolean))]
+
+      // Delete the voided transaction_items rows belonging to this tenant_id
+      const { error: delItemsErr } = await supabase
+        .from('transaction_items')
+        .delete()
+        .in('id', itemIdsToDelete)
+
+      if (delItemsErr) throw delItemsErr
+
+      // Check if any of those parent VOID transactions now have 0 remaining transaction_items
+      if (candidateTxIds.length > 0) {
+        const { data: remainingItems, error: remErr } = await supabase
+          .from('transaction_items')
+          .select('transaction_id')
+          .in('transaction_id', candidateTxIds)
+
+        if (!remErr && remainingItems) {
+          const remainingTxSet = new Set(remainingItems.map((r) => r.transaction_id))
+          const emptyTxIds = candidateTxIds.filter((id) => !remainingTxSet.has(id))
+          if (emptyTxIds.length > 0) {
+            await supabase
+              .from('transactions')
+              .delete()
+              .in('id', emptyTxIds)
+          }
+        }
+      }
+    }
+
+    // 4. Proceed to delete the tenants row from the lineup cleanly
+    const { error: delTenantErr } = await supabase
+      .from('tenants')
+      .delete()
+      .eq('id', tenant.id)
+
+    if (delTenantErr) {
+      if (delTenantErr.code === '23503') {
+        const msg = 'Tidak dapat menghapus tenant karena masih memiliki referensi transaksi di event ini.'
+        lineupError.value = msg
+        showToast('error', msg, 6500)
+        return
+      }
+      throw delTenantErr
+    }
+
+    // 5. Update reactive state & synchronize
+    tenants.value = tenants.value.filter((t) => t.id !== tenant.id)
+    allTenantsList.value = allTenantsList.value.filter((t) => t.id !== tenant.id)
+    showToast('success', 'Tenant berhasil dihapus dari lineup.')
+    await fetchMasterTenants()
+    if (selectedEventId.value) {
+      await fetchTransactionItems(selectedEventId.value)
+    }
+  } catch (err) {
+    console.error('Error removing tenant:', err)
+    const msg = `Gagal menghapus tenant: ${err.message}`
+    lineupError.value = msg
+    showToast('error', msg, 5000)
+  }
 }
 
 // ─── Master Tenants Directory (Standalone Brand DB) ───────────────────────────

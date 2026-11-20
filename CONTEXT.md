@@ -408,10 +408,14 @@ Routes are defined in `src/main.js` using `createWebHistory()` (HTML5 history mo
            2. **`+ Tenant Baru`** (Quick-Add form toggle): Adds a vendor directly to the active event lineup AND automatically upserts/links it into `master_tenants` (filling in missing category/bank info if already present) so the master directory remains 100% synchronized.
          - Lineup table showing Booth #, Brand Name (with Master Brand indicator), Category, 3-way Share % split, Payout status badge.
          - Action buttons: Edit tenant override modal, copy private portal link (`/tenant/:token`) with "Copied!" feedback, and remove tenant from lineup.
-         - **Lineup Deletion Safety & Error Feedback**:
-           - Handles foreign-key constraint violations (`error.code === '23503'`) when attempting to delete a tenant that has transaction items recorded in the event.
-           - Displays clear Indonesian error feedback: `"Tidak dapat menghapus tenant karena sudah memiliki riwayat transaksi di event ini (hapus/void transaksi terkait terlebih dahulu jika ingin menghapus)."` via both a prominent inline warning banner in Section 2 and a floating toast notification.
-           - When safe to delete (zero transactions), deletes cleanly, updates reactive state (`tenants` & `allTenantsList`), and emits a success toast.
+         - **Lineup Deletion Safety & Voided Transaction Cleanup**:
+           - When attempting to remove a tenant from lineup, inspects all linked `transaction_items` joined with `transactions(id, status)`.
+           - **Active transactions guard:** If any non-void transaction exists (`transactions.status !== 'VOID' && transactions.status !== 'VOIDED'`), deletion is blocked with clear Indonesian feedback: `"Tidak dapat menghapus tenant karena masih memiliki transaksi aktif di event ini (void transaksi terkait terlebih dahulu)."` displayed via both an inline warning banner and a toast.
+           - **Voided transactions auto-cleanup:** If all linked transactions are `VOID` / `VOIDED` (0 active transactions):
+             1. Deletes the voided `transaction_items` rows belonging to that `tenant_id`.
+             2. Inspects parent `VOID` `transactions` and deletes any empty transaction header rows that now have 0 remaining items.
+             3. Safely deletes the `tenants` row from `tenants` table without foreign-key constraint violations (`23503`).
+             4. Updates local reactive state (`tenants`, `allTenantsList`, and transaction metrics) and emits a success toast (`"Tenant berhasil dihapus dari lineup."`).
     3. **`Master Tenant` Directory**:
        - Standalone central brand and vendor database (`master_tenants`) independent of any event.
        - **Enriched Brand Profile & Flexible Form (`newMasterTenant` & `editingMasterTenant`)**:
