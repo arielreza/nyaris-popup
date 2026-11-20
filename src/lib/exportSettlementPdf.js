@@ -72,9 +72,10 @@ function applyPageFooters(doc) {
  * @param {Object} options
  * @param {Object} options.event Event object (name, venue, event_dates, venue_share_percent, organizer_share_percent)
  * @param {Object} options.summary Summary figures (totalGross, totalVenueCut, totalOrganizerCut, totalTenantNet, totalQris, totalCash)
+ * @param {Object} [options.paymentBreakdown] Payment reconciliation object (qrisTotal, qrisCount, cashTotal, cashCount)
  * @param {Array} options.tenantRows Settlement rows with tenant details & calculated cuts
  */
-export function generateEventSettlementPdf({ event, summary, tenantRows = [] }) {
+export function generateEventSettlementPdf({ event, summary, tenantRows = [], paymentBreakdown = null }) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -182,21 +183,37 @@ export function generateEventSettlementPdf({ event, summary, tenantRows = [] }) 
   doc.setTextColor(4, 120, 87)
   doc.text(formatRupiah(summary?.totalTenantNet || 0), card4X + 3, startSummaryY + 12)
 
-  // Payment Breakdown Strip
+  // ── Payment Reconciliation Strip (End-of-Day) ──
+  const pBreakdown = paymentBreakdown || summary?.paymentBreakdown || null
+  const qrisTotal = pBreakdown?.qrisTotal ?? summary?.totalQris ?? 0
+  const qrisCount = pBreakdown?.qrisCount ?? 0
+  const cashTotal = pBreakdown?.cashTotal ?? summary?.totalCash ?? 0
+  const cashCount = pBreakdown?.cashCount ?? 0
+
+  const qrisStr = qrisCount > 0
+    ? `QRIS: ${formatRupiah(qrisTotal)} (${qrisCount} trx)`
+    : `QRIS: ${formatRupiah(qrisTotal)}`
+  const cashStr = cashCount > 0
+    ? `CASH: ${formatRupiah(cashTotal)} (${cashCount} trx)`
+    : `CASH: ${formatRupiah(cashTotal)}`
+  const trxSuffix = (qrisCount + cashCount) > 0 ? `   •   Total: ${qrisCount + cashCount} Transaksi` : ''
+
   const paymentY = startSummaryY + cardHeight + 3.5
   doc.setFillColor(248, 250, 252)
   doc.setDrawColor(226, 232, 240)
-  doc.roundedRect(14, paymentY, 182, 7.5, 1, 1, 'FD')
+  doc.roundedRect(14, paymentY, 182, 8, 1, 1, 'FD')
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
-  doc.setTextColor(71, 85, 105)
-  doc.text('Breakdown Metode:', 18, paymentY + 5)
+  doc.setTextColor(15, 23, 42)
+  doc.text('Rekonsiliasi Pembayaran:', 18, paymentY + 5.2)
+
   doc.setFont('helvetica', 'normal')
+  doc.setTextColor(71, 85, 105)
   doc.text(
-    `QRIS: ${formatRupiah(summary?.totalQris || 0)}   •   CASH: ${formatRupiah(summary?.totalCash || 0)}   •   Total Tenant: ${tenantRows.length} Brand`,
-    50,
-    paymentY + 5
+    `${qrisStr}   •   ${cashStr}${trxSuffix}   •   Total Tenant: ${tenantRows.length} Brand`,
+    58,
+    paymentY + 5.2
   )
 
   // ── Main Settlement Table (autoTable) ──
@@ -575,3 +592,6 @@ export function generateTenantSettlementPdf({ event, tenantRow, tenantItems = []
   const eventSlug = slugify(eventName)
   doc.save(`Slip_${boothSlug}_${tenantSlug}_${eventSlug}.pdf`)
 }
+
+// Re-export alias for flexible imports
+export const exportEventSettlementPdf = generateEventSettlementPdf

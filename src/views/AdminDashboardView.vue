@@ -136,6 +136,7 @@ const events = ref([])
 const selectedEventId = ref(null)
 const tenants = ref([])
 const transactionItems = ref([]) // items with joined transaction info
+const transactions = ref([]) // transactions for active event
 
 const loadingEvents = ref(false)
 const loadingTenants = ref(false)
@@ -267,6 +268,56 @@ const totalCash = computed(() =>
     .reduce((s, i) => s + Number(i.gross_amount || 0), 0)
 )
 
+// Non-void transactions for active event
+const validTransactions = computed(() => {
+  if (transactions.value.length > 0) {
+    return transactions.value.filter((t) => t.status !== 'VOID' && t.status !== 'VOIDED')
+  }
+  // Fallback: derive distinct parent transactions from validItems
+  const map = new Map()
+  for (const item of validItems.value) {
+    if (item.transactions && !map.has(item.transactions.id)) {
+      map.set(item.transactions.id, item.transactions)
+    }
+  }
+  return Array.from(map.values()).filter((t) => t.status !== 'VOID' && t.status !== 'VOIDED')
+})
+
+// End-of-Day Payment Reconciliation
+const paymentBreakdown = computed(() => {
+  const activeTxs = validTransactions.value
+  const qrisTxs = activeTxs.filter((t) => t.payment_method === 'QRIS')
+  const cashTxs = activeTxs.filter((t) => t.payment_method === 'CASH')
+
+  const qrisTotal = qrisTxs.reduce((sum, t) => sum + Number(t.total_amount || 0), 0)
+  const qrisCount = qrisTxs.length
+
+  const cashTotal = cashTxs.reduce((sum, t) => sum + Number(t.total_amount || 0), 0)
+  const cashCount = cashTxs.length
+
+  const cashTenderedTotal = cashTxs.reduce((sum, t) => {
+    const tendered = t.cash_tendered != null ? Number(t.cash_tendered) : Number(t.total_amount || 0)
+    return sum + tendered
+  }, 0)
+
+  const cashChangeTotal = cashTxs.reduce((sum, t) => sum + Number(t.change_amount || 0), 0)
+
+  const gross = totalGross.value || (qrisTotal + cashTotal)
+  const qrisPct = gross > 0 ? Math.round((qrisTotal / gross) * 100) : 0
+  const cashPct = gross > 0 ? Math.max(0, 100 - qrisPct) : 0
+
+  return {
+    qrisTotal,
+    qrisCount,
+    cashTotal,
+    cashCount,
+    cashTenderedTotal,
+    cashChangeTotal,
+    qrisPct,
+    cashPct,
+  }
+})
+
 // Per-tenant settlement rows
 const settlementRows = computed(() => {
   return tenants.value.map((tenant) => {
@@ -304,18 +355,29 @@ async function fetchTenants(eventId) {
 }
 
 async function fetchTransactionItems(eventId) {
-  if (!eventId) { transactionItems.value = []; return }
+  if (!eventId) {
+    transactionItems.value = []
+    transactions.value = []
+    return
+  }
   loadingItems.value = true
-  // Get transactions for this event, then join items
-  const { data, error } = await supabase
-    .from('transaction_items')
-    .select(`
-      *,
-      transactions!inner(id, receipt_code, payment_method, status, event_id, created_at)
-    `)
-    .eq('transactions.event_id', eventId)
+  const [itemsRes, txRes] = await Promise.all([
+    supabase
+      .from('transaction_items')
+      .select(`
+        *,
+        transactions!inner(id, receipt_code, payment_method, status, total_amount, cash_tendered, change_amount, event_id, created_at)
+      `)
+      .eq('transactions.event_id', eventId),
+    supabase
+      .from('transactions')
+      .select('id, receipt_code, payment_method, total_amount, cash_tendered, change_amount, status, event_id, created_at')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+  ])
   loadingItems.value = false
-  if (!error) transactionItems.value = data
+  if (!itemsRes.error) transactionItems.value = itemsRes.data || []
+  if (!txRes.error) transactions.value = txRes.data || []
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
@@ -332,6 +394,11 @@ function subscribeRealtime(eventId) {
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'transaction_items' },
+      () => { fetchTransactionItems(eventId) }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'transactions', filter: `event_id=eq.${eventId}` },
       () => { fetchTransactionItems(eventId) }
     )
     .subscribe()
@@ -1412,9 +1479,10 @@ function exportAllPdf() {
       totalVenueCut: totalVenueCut.value,
       totalOrganizerCut: totalOrganizerCut.value,
       totalTenantNet: totalTenantNet.value,
-      totalQris: totalQris.value,
-      totalCash: totalCash.value,
+      totalQris: paymentBreakdown.value.qrisTotal,
+      totalCash: paymentBreakdown.value.cashTotal,
     },
+    paymentBreakdown: paymentBreakdown.value,
     tenantRows: settlementRows.value,
   })
   showToast('success', 'Laporan Settlement Event PDF berhasil diunduh.')
@@ -1805,6 +1873,125 @@ async function copyTenantWaSummary(row) {
                     <p class="text-lg font-bold text-slate-200">{{ formatRupiah(totalCash) }}</p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- End-of-Day Payment Reconciliation Card -->
+          <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-emerald-400">
+                  <Banknote class="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    Rekonsiliasi Metode Pembayaran (End-of-Day)
+                  </h3>
+                  <p class="text-xs text-slate-400">
+                    Pemisahan setoran kas masuk QRIS vs fisik laci kasir (CASH)
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-xs font-mono">
+                <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                  Total Transaksi: <strong class="text-white">{{ paymentBreakdown.qrisCount + paymentBreakdown.cashCount }}</strong>
+                </span>
+              </div>
+            </div>
+
+            <!-- Two Columns: QRIS vs CASH -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- QRIS Column -->
+              <div class="bg-slate-950/60 border border-sky-500/30 rounded-xl p-4 flex flex-col justify-between gap-3">
+                <div class="flex items-start justify-between">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                        <CreditCard class="w-3.5 h-3.5" />
+                        QRIS Settlement
+                      </span>
+                      <span class="text-xs text-slate-400 font-mono font-medium">
+                        {{ paymentBreakdown.qrisCount }} transaksi
+                      </span>
+                    </div>
+                    <p class="text-2xl font-black text-sky-400 tracking-tight pt-1">
+                      {{ formatRupiah(paymentBreakdown.qrisTotal) }}
+                    </p>
+                  </div>
+                  <span class="text-xs font-bold px-2 py-1 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 font-mono">
+                    {{ paymentBreakdown.qrisPct }}%
+                  </span>
+                </div>
+                <p class="text-[11px] text-slate-400">
+                  Langsung masuk ke rekening settlement QRIS penyelenggara
+                </p>
+              </div>
+
+              <!-- CASH (Laci Kasir) Column -->
+              <div class="bg-slate-950/60 border border-emerald-500/30 rounded-xl p-4 flex flex-col justify-between gap-3">
+                <div class="flex items-start justify-between">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <Banknote class="w-3.5 h-3.5" />
+                        CASH (Laci Kasir)
+                      </span>
+                      <span class="text-xs text-slate-400 font-mono font-medium">
+                        {{ paymentBreakdown.cashCount }} transaksi
+                      </span>
+                    </div>
+                    <p class="text-2xl font-black text-emerald-400 tracking-tight pt-1">
+                      {{ formatRupiah(paymentBreakdown.cashTotal) }}
+                    </p>
+                  </div>
+                  <span class="text-xs font-bold px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                    {{ paymentBreakdown.cashPct }}%
+                  </span>
+                </div>
+
+                <!-- Cash Tendered & Change Breakdown Line -->
+                <div class="text-[11px] text-slate-400 font-mono flex items-center justify-between flex-wrap gap-1 border-t border-slate-800/80 pt-2">
+                  <span v-if="paymentBreakdown.cashChangeTotal > 0">
+                    Diterima: <span class="text-slate-200">{{ formatRupiah(paymentBreakdown.cashTenderedTotal) }}</span> • Kembalian: <span class="text-rose-400">-{{ formatRupiah(paymentBreakdown.cashChangeTotal) }}</span>
+                  </span>
+                  <span v-else>
+                    Fisik kas laci kasir wajib cocok dengan nominal di atas
+                  </span>
+                  <span class="text-emerald-400 font-semibold font-sans text-[10px]">Net Cash Fisik</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Visual Split Progress Bar -->
+            <div class="space-y-1.5">
+              <div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden flex">
+                <div
+                  v-if="paymentBreakdown.qrisPct > 0"
+                  :style="{ width: `${paymentBreakdown.qrisPct}%` }"
+                  class="h-full bg-sky-500 transition-all duration-300"
+                  :title="`QRIS: ${paymentBreakdown.qrisPct}%`"
+                />
+                <div
+                  v-if="paymentBreakdown.cashPct > 0"
+                  :style="{ width: `${paymentBreakdown.cashPct}%` }"
+                  class="h-full bg-emerald-500 transition-all duration-300"
+                  :title="`CASH: ${paymentBreakdown.cashPct}%`"
+                />
+                <div
+                  v-if="paymentBreakdown.qrisPct === 0 && paymentBreakdown.cashPct === 0"
+                  class="h-full w-full bg-slate-800"
+                />
+              </div>
+              <div class="flex justify-between text-[11px] font-mono text-slate-400 px-0.5">
+                <span class="flex items-center gap-1.5 text-sky-400">
+                  <span class="w-2 h-2 rounded-full bg-sky-500 inline-block"></span>
+                  QRIS: {{ paymentBreakdown.qrisPct }}% ({{ formatRupiah(paymentBreakdown.qrisTotal) }})
+                </span>
+                <span class="flex items-center gap-1.5 text-emerald-400">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                  CASH: {{ paymentBreakdown.cashPct }}% ({{ formatRupiah(paymentBreakdown.cashTotal) }})
+                </span>
               </div>
             </div>
           </section>

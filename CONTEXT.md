@@ -421,6 +421,11 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
     1. **`Overview & Settlement` (Default)**:
        - Compact Active Event selector bar with live status, dates badge, venue info, and quick switch to event settings.
        - **5 Live Revenue Summary Cards**: Total Gross (White), Venue Cut (Violet), Organizer Cut (Amber), Tenant Net Payout (Emerald), and QRIS vs Cash breakdown (Sky).
+       - **Rekonsiliasi Metode Pembayaran (End-of-Day)**:
+         - A dedicated high-clarity reconciliation card right below the KPI cards comparing digital payments vs physical cash drawer:
+           - **QRIS Settlement**: Total Rupiah, transaction count badge, and revenue share percentage.
+           - **CASH (Laci Kasir)**: Total net cash, transaction count badge, revenue share percentage, and a breakdown line showing total cash received from buyers (`Diterima: Rp ...`) vs change returned (`Kembalian: -Rp ...`).
+           - **Visual Split Bar**: Full-width progress bar showing the proportional breakdown between QRIS (sky) and CASH (emerald).
        - **Per-Tenant Settlement & Payout Table**: Booth #, Tenant Name, Category, Gross Sales, Venue Cut, Organizer Cut, Net Payout, and toggleable payout status (`PENDING` / `SETTLED`).
        - **Professional PDF Settlement Generators (`jspdf` & `jspdf-autotable`)**:
          - **`Export All PDF` (`generateEventSettlementPdf`)**: Generates an A4 internal event settlement document featuring official header, event metadata box with default split (`Skema Bagi Hasil: Venue X% • EO Y%`), 4-card financial summary grid (Gross Sales, Venue Cut, EO Cut, Tenant Net, plus QRIS vs Cash breakdown), and a full settlement table with default percentages embedded in column headers (`Venue Cut (X%)` and `EO Cut (Y%)`), clean rupiah figures in cells (only appending `(Z%)` if overridden), single-line status column (`PENDING` / `SETTLED`), bold summary footer (`TOTAL KESELURUHAN`), and page numbering.
