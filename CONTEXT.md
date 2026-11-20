@@ -370,12 +370,23 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
 **Status:** ✅ **Fully implemented.**
 
 **Features:**
+- **Responsive 2-Column Split-View Layout on Desktop/Tablet (`lg:`)**:
+  - Main POS workspace widens dynamically to `max-w-6xl mx-auto` with a 12-column responsive layout:
+    - **Left Column (`lg:col-span-7`):** Houses the Quick Search bar, horizontal scrollable Category Pills, and Tenant Grid (`grid-cols-2 sm:grid-cols-3 gap-3`), maximizing visible booths without excessive vertical scrolling.
+    - **Right Column (`lg:col-span-5 lg:sticky lg:top-20`):** Pins the **Cart (Keranjang)** card (with scrollable item list) and **Payment (Pembayaran + Proses Pembayaran)** card in sticky view so the checkout button remains visible and reachable at all times even with multiple items in the cart.
+    - **Mobile View (`< 1024px`):** Clean single-column stacked layout with generous bottom padding (`pb-32`) ensuring the fixed bottom drawer never obscures checkout controls.
 - **Active Event Auto-Selection & Filtering**:
   - Automatically queries and filters `events` to only display active events (`status === 'ACTIVE'` or `is_active !== false`), completely hiding completed/archived events from the cashier UI.
   - Zero-click readiness: auto-selects the first active event on load and invokes `onEventChange()` to load tenants immediately without cashier manual interaction.
   - Clear empty state when 0 active events exist: displays `"Tidak ada event aktif saat ini. Aktifkan event di menu Admin."` with direct CTA button navigating to `/admin`.
-- Top Bar: PopUpPOS logo, Event selector dropdown, Admin navigation shortcut (`/admin`), and Staff Logout button (`handleLogout`).
-- Tenant quick-tap grid with booth number badge, tenant name, and category.
+- Top Bar: PopUpPOS logo, Event selector dropdown, Admin navigation shortcut (`/admin`), and Staff Logout button (`handleLogout`), aligned with `max-w-6xl` on desktop.
+- **Tenant Grid with Quick Search & Category Filtering**:
+  - High-contrast search input (`tenantSearchQuery`) matching brand name, booth number, or category with a 1-click clear (`×`) button.
+  - Dynamic horizontal scrollable category filter pills (`Semua`, plus distinct categories extracted from active event's lineup) rendered whenever $\ge 2$ distinct categories exist.
+  - Live tenant count badge (`filteredTenants.length / tenants.length`).
+  - Search empty state card (`"Tidak ada tenant yang cocok dengan pencarian."`) with a 1-click `"Reset Filter"` button.
+  - Auto-resets search query and category filter whenever `selectedEventId` changes.
+  - Tenant quick-tap grid with booth number badge, tenant name, and category.
 - **Enhanced Amount Input Modal**:
   - Live 3-Way Split preview badge in modal header (`Venue X% • EO Y% • Tenant Z%`)
   - Live thousand-separator formatting as the cashier types (e.g. `100.000`), stripping non-digits to keep clean integer values
@@ -405,7 +416,12 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
   - Automatically pops up upon successful payment or when clicking on any receipt code in Recent Transactions.
   - Paper receipt styling with event title, receipt code, timestamp, payment method badge, itemized breakdown (tenant, booth, notes, gross amounts), total amount, and exact cash tendered / change if paid in CASH.
   - **"Copy Text"** action button that copies a neatly formatted POS text receipt to clipboard for easy WhatsApp sending or thermal printing.
-- Recent transactions drawer with live Supabase Realtime subscription (listening to both `transactions` and `transaction_items`), displaying expanded item breakdowns, cash tendered/change badges, and direct click-to-view digital receipt buttons.
+- **Recent Transactions Drawer with Receipt Search & Status Filter**:
+  - Live Supabase Realtime subscription (listening to both `transactions` and `transaction_items`), displaying expanded item breakdowns, cash tendered/change badges, and direct click-to-view digital receipt buttons.
+  - Sticky search input (`txSearchQuery`) with 1-click clear (`×`) button matching receipt codes, void reasons, or vendor names and item notes.
+  - 3-state status filter pills (`Semua`, `Completed`, `Void`) with instant reactive filtering.
+  - Dynamic count badge in toggle button (`filtered / total`) and clean search empty state with 1-click filter reset.
+  - Widescreen container width (`max-w-4xl`) on tablet/desktop.
 - **Protected Supervisor Void Authorization Modal**:
   - Requires entering the 6-digit Supervisor/Admin PIN (`VITE_ADMIN_PIN`) and a mandatory void reason.
   - Updates `transactions.status = 'VOIDED'`, `transactions.void_reason`, and `transactions.voided_at`.

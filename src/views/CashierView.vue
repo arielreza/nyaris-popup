@@ -26,7 +26,7 @@
 
     <!-- Top Bar -->
     <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30">
-      <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
+      <div class="max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <ShoppingCart class="w-6 h-6 text-emerald-400" />
           <h1 class="text-lg font-bold tracking-tight text-slate-100">PopUpPOS</h1>
@@ -66,7 +66,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-2xl mx-auto w-full px-4 py-4 flex flex-col gap-4 pb-32">
+    <main :class="selectedEventId ? 'max-w-6xl' : 'max-w-2xl'" class="flex-1 mx-auto w-full px-4 py-4 flex flex-col gap-4 pb-32">
 
       <!-- No Event Selected -->
       <div v-if="!selectedEventId" class="flex flex-col items-center justify-center py-20 text-slate-500 gap-4 text-center px-4">
@@ -90,214 +90,303 @@
       </div>
 
       <template v-else>
-        <!-- Tenant Grid -->
-        <section>
-          <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Tenant</h2>
-          <div v-if="loadingTenants" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div v-for="i in 6" :key="i" class="h-24 bg-slate-800 rounded-xl animate-pulse" />
-          </div>
-          <div v-else-if="tenants.length === 0" class="text-center py-10 text-slate-500 text-sm">
-            Tidak ada tenant untuk event ini.
-          </div>
-          <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <button
-              v-for="tenant in tenants"
-              :key="tenant.id"
-              @click="openAddToCart(tenant)"
-              class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 rounded-xl p-3 text-left transition-all duration-150 active:scale-95 flex flex-col gap-1.5 group"
-            >
-              <span class="inline-flex items-center gap-1 bg-slate-800 group-hover:bg-slate-700 rounded-lg px-2 py-0.5 text-xs font-mono text-amber-400 font-semibold w-fit">
-                <Hash class="w-3 h-3" />{{ tenant.booth_number || '?' }}
-              </span>
-              <span class="font-semibold text-slate-100 text-sm leading-tight line-clamp-2">{{ tenant.name }}</span>
-              <span class="text-xs text-slate-400">{{ tenant.category || 'Umum' }}</span>
-            </button>
-          </div>
-        </section>
+        <!-- Responsive 2-Column Split-View on Desktop/Tablet -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        <!-- Cart Section -->
-        <section v-if="cart.length > 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Keranjang</h2>
-            <span class="text-xs text-slate-500">{{ cart.length }} item</span>
-          </div>
-
-          <!-- Cart Items -->
-          <div class="flex flex-col gap-2">
-            <div
-              v-for="(item, idx) in cart"
-              :key="idx"
-              class="flex items-start gap-3 bg-slate-800/60 rounded-xl px-3 py-2.5"
-            >
-              <div class="flex-1 min-w-0">
-                <p class="font-semibold text-slate-100 text-sm truncate">{{ item.tenantName }}</p>
-                <p v-if="item.itemNote" class="text-xs text-slate-400 truncate">{{ item.itemNote }}</p>
+          <!-- Left Column: Quick Search, Category Pills & Tenant Grid (lg:col-span-7) -->
+          <div class="lg:col-span-7 space-y-4">
+            <!-- Tenant Grid -->
+            <section class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Tenant</h2>
+                <span v-if="tenants.length > 0 && !loadingTenants" class="text-xs text-slate-500 font-mono">
+                  {{ filteredTenants.length }} / {{ tenants.length }}
+                </span>
               </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="text-emerald-400 font-semibold text-sm">{{ formatRupiah(item.grossAmount) }}</span>
-                <button
-                  @click="removeFromCart(idx)"
-                  class="text-slate-500 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-400/10"
+
+              <!-- Quick Search & Category Filtering (Rendered when event has tenants) -->
+              <div v-if="tenants.length > 0 && !loadingTenants" class="space-y-2">
+                <!-- Search Input -->
+                <div class="relative">
+                  <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    v-model="tenantSearchQuery"
+                    type="text"
+                    placeholder="Cari nama brand atau nomor booth..."
+                    class="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500/50 text-slate-100 placeholder-slate-500 rounded-xl pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  />
+                  <button
+                    v-if="tenantSearchQuery"
+                    type="button"
+                    @click="tenantSearchQuery = ''"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                    title="Hapus pencarian"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <!-- Category Filter Pills (When 2+ distinct categories exist) -->
+                <div
+                  v-if="availableTenantCategories.length > 2"
+                  class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs"
                 >
-                  <X class="w-4 h-4" />
+                  <button
+                    v-for="cat in availableTenantCategories"
+                    :key="cat"
+                    type="button"
+                    @click="selectedTenantCategory = cat"
+                    :class="selectedTenantCategory === cat
+                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm shadow-emerald-500/20 border-emerald-500'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800 hover:border-slate-700'"
+                    class="px-3 py-1.5 rounded-xl border whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0"
+                  >
+                    {{ cat === 'ALL' ? 'Semua' : cat }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Loading Skeleton -->
+              <div v-if="loadingTenants" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div v-for="i in 6" :key="i" class="h-24 bg-slate-800 rounded-xl animate-pulse" />
+              </div>
+
+              <!-- Empty State: No Tenants in Event -->
+              <div v-else-if="tenants.length === 0" class="text-center py-10 text-slate-500 text-sm">
+                Tidak ada tenant untuk event ini.
+              </div>
+
+              <!-- Empty State: Filter Returned 0 Results -->
+              <div
+                v-else-if="filteredTenants.length === 0"
+                class="bg-slate-900/60 border border-slate-800/80 rounded-2xl py-10 px-4 text-center space-y-3"
+              >
+                <Search class="w-8 h-8 text-slate-600 mx-auto" />
+                <div class="space-y-1">
+                  <p class="text-sm font-semibold text-slate-300">Tidak ada tenant yang cocok dengan pencarian.</p>
+                  <p class="text-xs text-slate-500">Coba kata kunci lain atau reset filter kategori.</p>
+                </div>
+                <button
+                  type="button"
+                  @click="tenantSearchQuery = ''; selectedTenantCategory = 'ALL'"
+                  class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  <RefreshCw class="w-3 h-3" />
+                  <span>Reset Filter</span>
                 </button>
               </div>
-            </div>
-          </div>
 
-          <!-- Cart Total -->
-          <div class="border-t border-slate-800 pt-3 flex items-center justify-between">
-            <span class="text-slate-400 font-medium">Total</span>
-            <span class="text-2xl font-bold text-emerald-400">{{ formatRupiah(cartTotal) }}</span>
-          </div>
-        </section>
-
-        <!-- Empty Cart Hint -->
-        <section v-else class="bg-slate-900/50 border border-dashed border-slate-800 rounded-2xl p-6 text-center text-slate-600 text-sm">
-          <ShoppingCart class="w-8 h-8 mx-auto mb-2 text-slate-700" />
-          Tap tenant untuk menambah item ke keranjang
-        </section>
-
-        <!-- Checkout Section -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-4">
-          <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Pembayaran</h2>
-
-          <!-- Payment Method Toggle -->
-          <div class="flex gap-2">
-            <button
-              @click="paymentMethod = 'QRIS'"
-              :class="[
-                'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2',
-                paymentMethod === 'QRIS'
-                  ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              ]"
-            >
-              <Smartphone class="w-4 h-4" />
-              QRIS
-            </button>
-            <button
-              @click="paymentMethod = 'CASH'"
-              :class="[
-                'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2',
-                paymentMethod === 'CASH'
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              ]"
-            >
-              <Banknote class="w-4 h-4" />
-              CASH
-            </button>
-          </div>
-
-          <!-- Cash Tendered & Change Panel (When CASH is selected) -->
-          <div v-if="paymentMethod === 'CASH'" class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3.5 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Banknote class="w-4 h-4 text-emerald-400" />
-                Uang Diterima (Cash Tendered)
-              </span>
-              <button
-                type="button"
-                @click="setExactCash"
-                class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
-              >
-                Uang Pas
-              </button>
-            </div>
-
-            <!-- Input -->
-            <div class="relative">
-              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">Rp</span>
-              <input
-                type="text"
-                inputmode="numeric"
-                :value="cashTenderedDisplay"
-                @input="handleCashTenderedInput"
-                :placeholder="cartTotal > 0 ? Number(cartTotal).toLocaleString('id-ID') + ' (Uang Pas)' : '0'"
-                class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl pl-11 pr-10 py-2.5 text-base font-bold text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
-              />
-              <button
-                v-if="cashTendered"
-                @click="cashTendered = null; cashTenderedDisplay = ''"
-                type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
-              >
-                <X class="w-4 h-4" />
-              </button>
-            </div>
-
-            <!-- Denomination Chips -->
-            <div class="grid grid-cols-4 gap-1.5">
-              <button
-                v-for="chip in [50000, 100000, 200000, 500000]"
-                :key="chip"
-                type="button"
-                @click="addCashTenderedChip(chip)"
-                class="py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white transition-all active:scale-95 cursor-pointer"
-              >
-                +{{ chip >= 1000 ? (chip / 1000) + 'k' : chip }}
-              </button>
-            </div>
-
-            <!-- Kembalian / Shortage Row -->
-            <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-              <span class="text-slate-400 font-medium">Kembalian:</span>
-              <div v-if="isCashInsufficient" class="flex items-center gap-1.5 text-rose-400 font-semibold animate-pulse">
-                <AlertCircle class="w-3.5 h-3.5" />
-                <span>Kurang {{ formatRupiah(cashShortage) }}</span>
+              <!-- Filtered Tenant Grid -->
+              <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <button
+                  v-for="tenant in filteredTenants"
+                  :key="tenant.id"
+                  @click="openAddToCart(tenant)"
+                  class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 rounded-xl p-3 text-left transition-all duration-150 active:scale-95 flex flex-col gap-1.5 group cursor-pointer"
+                >
+                  <span class="inline-flex items-center gap-1 bg-slate-800 group-hover:bg-slate-700 rounded-lg px-2 py-0.5 text-xs font-mono text-amber-400 font-semibold w-fit">
+                    <Hash class="w-3 h-3" />{{ tenant.booth_number || '?' }}
+                  </span>
+                  <span class="font-semibold text-slate-100 text-sm leading-tight line-clamp-2">{{ tenant.name }}</span>
+                  <span class="text-xs text-slate-400">{{ tenant.category || 'Umum' }}</span>
+                </button>
               </div>
-              <div v-else class="text-right">
-                <span class="font-bold text-base text-emerald-400">
-                  {{ formatRupiah(cashChange) }}
-                </span>
-                <span v-if="!cashTendered || cashTendered === cartTotal" class="text-[11px] text-slate-500 block">
-                  (Uang Pas)
-                </span>
+            </section>
+          </div>
+
+          <!-- Right Column: Cart & Checkout Payment (lg:col-span-5 lg:sticky lg:top-20) -->
+          <div class="lg:col-span-5 space-y-4 lg:sticky lg:top-20">
+            <!-- Cart Section -->
+            <section v-if="cart.length > 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-lg shadow-black/20">
+              <div class="flex items-center justify-between">
+                <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Keranjang</h2>
+                <span class="text-xs text-slate-500 font-mono">{{ cart.length }} item</span>
               </div>
-            </div>
+
+              <!-- Cart Items -->
+              <div class="flex flex-col gap-2 max-h-56 sm:max-h-64 overflow-y-auto pr-1">
+                <div
+                  v-for="(item, idx) in cart"
+                  :key="idx"
+                  class="flex items-start gap-3 bg-slate-800/60 rounded-xl px-3 py-2.5"
+                >
+                  <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-slate-100 text-sm truncate">{{ item.tenantName }}</p>
+                    <p v-if="item.itemNote" class="text-xs text-slate-400 truncate">{{ item.itemNote }}</p>
+                  </div>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-emerald-400 font-semibold text-sm">{{ formatRupiah(item.grossAmount) }}</span>
+                    <button
+                      @click="removeFromCart(idx)"
+                      class="text-slate-500 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-400/10 cursor-pointer"
+                    >
+                      <X class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cart Total -->
+              <div class="border-t border-slate-800 pt-3 flex items-center justify-between">
+                <span class="text-slate-400 font-medium">Total</span>
+                <span class="text-2xl font-bold text-emerald-400">{{ formatRupiah(cartTotal) }}</span>
+              </div>
+            </section>
+
+            <!-- Empty Cart Hint -->
+            <section v-else class="bg-slate-900/50 border border-dashed border-slate-800 rounded-2xl p-6 text-center text-slate-600 text-sm">
+              <ShoppingCart class="w-8 h-8 mx-auto mb-2 text-slate-700" />
+              Tap tenant untuk menambah item ke keranjang
+            </section>
+
+            <!-- Checkout Section -->
+            <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-4 shadow-lg shadow-black/20">
+              <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Pembayaran</h2>
+
+              <!-- Payment Method Toggle -->
+              <div class="flex gap-2">
+                <button
+                  @click="paymentMethod = 'QRIS'"
+                  :class="[
+                    'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer',
+                    paymentMethod === 'QRIS'
+                      ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ]"
+                >
+                  <Smartphone class="w-4 h-4" />
+                  QRIS
+                </button>
+                <button
+                  @click="paymentMethod = 'CASH'"
+                  :class="[
+                    'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer',
+                    paymentMethod === 'CASH'
+                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ]"
+                >
+                  <Banknote class="w-4 h-4" />
+                  CASH
+                </button>
+              </div>
+
+              <!-- Cash Tendered & Change Panel (When CASH is selected) -->
+              <div v-if="paymentMethod === 'CASH'" class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3.5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Banknote class="w-4 h-4 text-emerald-400" />
+                    Uang Diterima (Cash Tendered)
+                  </span>
+                  <button
+                    type="button"
+                    @click="setExactCash"
+                    class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
+                  >
+                    Uang Pas
+                  </button>
+                </div>
+
+                <!-- Input -->
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">Rp</span>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    :value="cashTenderedDisplay"
+                    @input="handleCashTenderedInput"
+                    :placeholder="cartTotal > 0 ? Number(cartTotal).toLocaleString('id-ID') + ' (Uang Pas)' : '0'"
+                    class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl pl-11 pr-10 py-2.5 text-base font-bold text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
+                  />
+                  <button
+                    v-if="cashTendered"
+                    @click="cashTendered = null; cashTenderedDisplay = ''"
+                    type="button"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  >
+                    <X class="w-4 h-4" />
+                  </button>
+                </div>
+
+                <!-- Denomination Chips -->
+                <div class="grid grid-cols-4 gap-1.5">
+                  <button
+                    v-for="chip in [50000, 100000, 200000, 500000]"
+                    :key="chip"
+                    type="button"
+                    @click="addCashTenderedChip(chip)"
+                    class="py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white transition-all active:scale-95 cursor-pointer"
+                  >
+                    +{{ chip >= 1000 ? (chip / 1000) + 'k' : chip }}
+                  </button>
+                </div>
+
+                <!-- Kembalian / Shortage Row -->
+                <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                  <span class="text-slate-400 font-medium">Kembalian:</span>
+                  <div v-if="isCashInsufficient" class="flex items-center gap-1.5 text-rose-400 font-semibold animate-pulse">
+                    <AlertCircle class="w-3.5 h-3.5" />
+                    <span>Kurang {{ formatRupiah(cashShortage) }}</span>
+                  </div>
+                  <div v-else class="text-right">
+                    <span class="font-bold text-base text-emerald-400">
+                      {{ formatRupiah(cashChange) }}
+                    </span>
+                    <span v-if="!cashTendered || cashTendered === cartTotal" class="text-[11px] text-slate-500 block">
+                      (Uang Pas)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Receipt Code -->
+              <div class="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-3">
+                <div>
+                  <span class="text-slate-300 text-sm font-semibold block">Kode Struk</span>
+                  <span class="text-[11px] text-slate-500">Nomor urut otomatis dibuat oleh sistem saat bayar</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono font-bold text-amber-400 tracking-wider text-xs bg-slate-900 border border-slate-700 px-2.5 py-1 rounded-lg">
+                    AUTO (#)
+                  </span>
+                </div>
+              </div>
+
+              <!-- Process Button -->
+              <button
+                @click="processPayment"
+                :disabled="cart.length === 0 || processingPayment || !selectedEventId || isCashInsufficient"
+                class="w-full py-4 rounded-xl font-semibold text-base transition-all duration-150 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
+              >
+                <Loader2 v-if="processingPayment" class="w-5 h-5 animate-spin" />
+                <CreditCard v-else class="w-5 h-5" />
+                {{ processingPayment ? 'Memproses…' : 'Proses Pembayaran' }}
+              </button>
+            </section>
           </div>
 
-          <!-- Receipt Code -->
-          <div class="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-3">
-            <div>
-              <span class="text-slate-300 text-sm font-semibold block">Kode Struk</span>
-              <span class="text-[11px] text-slate-500">Nomor urut otomatis dibuat oleh sistem saat bayar</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="font-mono font-bold text-amber-400 tracking-wider text-xs bg-slate-900 border border-slate-700 px-2.5 py-1 rounded-lg">
-                AUTO (#)
-              </span>
-            </div>
-          </div>
-
-          <!-- Process Button -->
-          <button
-            @click="processPayment"
-            :disabled="cart.length === 0 || processingPayment || !selectedEventId || isCashInsufficient"
-            class="w-full py-4 rounded-xl font-semibold text-base transition-all duration-150 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
-          >
-            <Loader2 v-if="processingPayment" class="w-5 h-5 animate-spin" />
-            <CreditCard v-else class="w-5 h-5" />
-            {{ processingPayment ? 'Memproses…' : 'Proses Pembayaran' }}
-          </button>
-        </section>
+        </div>
       </template>
     </main>
 
     <!-- Recent Transactions Drawer Toggle -->
     <div class="fixed bottom-0 left-0 right-0 z-40">
-      <div class="max-w-2xl mx-auto">
+      <div class="max-w-2xl lg:max-w-4xl mx-auto">
         <!-- Toggle Button -->
         <button
           @click="drawerOpen = !drawerOpen"
-          class="w-full bg-slate-900 border-t border-slate-800 px-4 py-3 flex items-center justify-between hover:bg-slate-800 transition-colors"
+          class="w-full bg-slate-900 border-t border-slate-800 px-4 py-3 flex items-center justify-between hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <div class="flex items-center gap-2">
             <Clock class="w-4 h-4 text-slate-400" />
             <span class="text-sm font-semibold text-slate-300">Transaksi Terbaru</span>
             <span v-if="recentTransactions.length > 0" class="bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full px-2 py-0.5">
-              {{ recentTransactions.length }}
+              <span v-if="txSearchQuery || txStatusFilter !== 'ALL'">
+                {{ filteredRecentTransactions.length }} / {{ recentTransactions.length }}
+              </span>
+              <span v-else>
+                {{ recentTransactions.length }}
+              </span>
             </span>
           </div>
           <ChevronUp :class="['w-4 h-4 text-slate-400 transition-transform duration-200', drawerOpen ? 'rotate-180' : '']" />
@@ -305,20 +394,99 @@
 
         <!-- Drawer Content -->
         <Transition name="drawer">
-          <div v-if="drawerOpen" class="bg-slate-900 border-t border-slate-800 max-h-96 overflow-y-auto">
-            <div v-if="loadingTransactions" class="p-6 text-center text-slate-500 text-sm">
-              <Loader2 class="w-5 h-5 animate-spin mx-auto mb-2" />
-              Memuat transaksi…
+          <div v-if="drawerOpen" class="bg-slate-900 border-t border-slate-800 max-h-[30rem] flex flex-col">
+            <!-- Filter Bar inside Drawer (when transactions exist) -->
+            <div
+              v-if="selectedEventId && recentTransactions.length > 0"
+              class="p-3 bg-slate-900/95 border-b border-slate-800 sticky top-0 z-10 space-y-2 backdrop-blur-sm"
+            >
+              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <!-- Search Input -->
+                <div class="relative flex-1 min-w-[180px]">
+                  <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    v-model="txSearchQuery"
+                    type="text"
+                    placeholder="Cari kode struk atau nama tenant..."
+                    class="w-full bg-slate-800 border border-slate-700 focus:border-sky-500/50 text-slate-100 placeholder-slate-500 rounded-xl pl-8 pr-8 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
+                  />
+                  <button
+                    v-if="txSearchQuery"
+                    type="button"
+                    @click="txSearchQuery = ''"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded-md cursor-pointer"
+                    title="Hapus pencarian"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <!-- Status Filter Pills -->
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    @click="txStatusFilter = 'ALL'"
+                    :class="txStatusFilter === 'ALL'
+                      ? 'bg-slate-700 text-white font-bold border-slate-600'
+                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 border-slate-700/80'"
+                    class="px-2.5 py-1 rounded-lg text-[11px] border font-medium transition-colors cursor-pointer"
+                  >
+                    Semua
+                  </button>
+                  <button
+                    type="button"
+                    @click="txStatusFilter = 'COMPLETED'"
+                    :class="txStatusFilter === 'COMPLETED'
+                      ? 'bg-emerald-500/20 text-emerald-400 font-bold border-emerald-500/40'
+                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 border-slate-700/80'"
+                    class="px-2.5 py-1 rounded-lg text-[11px] border font-medium transition-colors cursor-pointer"
+                  >
+                    Completed
+                  </button>
+                  <button
+                    type="button"
+                    @click="txStatusFilter = 'VOID'"
+                    :class="txStatusFilter === 'VOID'
+                      ? 'bg-rose-500/20 text-rose-400 font-bold border-rose-500/40'
+                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 border-slate-700/80'"
+                    class="px-2.5 py-1 rounded-lg text-[11px] border font-medium transition-colors cursor-pointer"
+                  >
+                    Void
+                  </button>
+                </div>
+              </div>
             </div>
-            <div v-else-if="!selectedEventId" class="p-6 text-center text-slate-600 text-sm">
-              Pilih event untuk melihat transaksi.
-            </div>
-            <div v-else-if="recentTransactions.length === 0" class="p-6 text-center text-slate-600 text-sm">
-              Belum ada transaksi.
-            </div>
-            <div v-else class="divide-y divide-slate-800">
+
+            <!-- Scrollable Transaction List -->
+            <div class="overflow-y-auto flex-1 divide-y divide-slate-800">
+              <div v-if="loadingTransactions" class="p-6 text-center text-slate-500 text-sm">
+                <Loader2 class="w-5 h-5 animate-spin mx-auto mb-2" />
+                Memuat transaksi…
+              </div>
+              <div v-else-if="!selectedEventId" class="p-6 text-center text-slate-600 text-sm">
+                Pilih event untuk melihat transaksi.
+              </div>
+              <div v-else-if="recentTransactions.length === 0" class="p-6 text-center text-slate-600 text-sm">
+                Belum ada transaksi.
+              </div>
               <div
-                v-for="tx in recentTransactions"
+                v-else-if="filteredRecentTransactions.length === 0"
+                class="p-8 text-center text-slate-500 text-xs space-y-2"
+              >
+                <Search class="w-6 h-6 text-slate-600 mx-auto" />
+                <p class="font-medium text-slate-400">Tidak ada transaksi yang cocok.</p>
+                <button
+                  type="button"
+                  @click="txSearchQuery = ''; txStatusFilter = 'ALL'"
+                  class="inline-flex items-center gap-1 text-sky-400 hover:underline cursor-pointer"
+                >
+                  <RefreshCw class="w-3 h-3" />
+                  <span>Reset filter transaksi</span>
+                </button>
+              </div>
+              <div
+                v-else
+                v-for="tx in filteredRecentTransactions"
                 :key="tx.id"
                 class="px-4 py-3 flex items-start gap-3 hover:bg-slate-800/40 transition-colors"
               >
@@ -720,13 +888,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ShoppingCart, CalendarDays, Hash, X, Plus, CreditCard, Clock,
   ChevronUp, AlertCircle, CheckCircle, Loader2, RefreshCw,
   Smartphone, Banknote, AlertTriangle, XCircle, ShieldCheck,
-  Receipt, Copy, Check, LogOut, Lock
+  Receipt, Copy, Check, LogOut, Lock, Search
 } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase.js'
 import { useAuth } from '@/lib/useAuth.js'
@@ -755,6 +923,50 @@ const selectedEventId = ref('')
 const tenants = ref([])
 const recentTransactions = ref([])
 
+// ─── Tenant Search & Category Filtering ───────────────────────────────────────
+
+const tenantSearchQuery = ref('')
+const selectedTenantCategory = ref('ALL')
+
+const availableTenantCategories = computed(() => {
+  const set = new Set()
+  for (const t of tenants.value) {
+    const cat = (t.category || '').trim()
+    if (cat) set.add(cat)
+  }
+  const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }))
+  return ['ALL', ...sorted]
+})
+
+const filteredTenants = computed(() => {
+  const q = tenantSearchQuery.value.trim().toLowerCase()
+  const cat = selectedTenantCategory.value
+
+  return tenants.value.filter((t) => {
+    // 1. Category match
+    if (cat !== 'ALL' && (t.category || '').trim() !== cat) {
+      return false
+    }
+    // 2. Search query match against brand name, booth number, or category
+    if (q) {
+      const name = (t.name || '').toLowerCase()
+      const booth = (t.booth_number || '').toLowerCase()
+      const category = (t.category || '').toLowerCase()
+      if (!name.includes(q) && !booth.includes(q) && !category.includes(q)) {
+        return false
+      }
+    }
+    return true
+  })
+})
+
+watch(selectedEventId, () => {
+  tenantSearchQuery.value = ''
+  selectedTenantCategory.value = 'ALL'
+  txSearchQuery.value = ''
+  txStatusFilter.value = 'ALL'
+})
+
 const cart = ref([])
 const paymentMethod = ref('QRIS')
 const receiptCode = ref('AUTO')
@@ -770,6 +982,45 @@ const receiptModal = ref({
 })
 
 const drawerOpen = ref(false)
+
+// ─── Recent Transactions Search & Status Filtering ───────────────────────────
+
+const txSearchQuery = ref('')
+const txStatusFilter = ref('ALL') // 'ALL' | 'COMPLETED' | 'VOID'
+
+const filteredRecentTransactions = computed(() => {
+  const q = txSearchQuery.value.trim().toLowerCase()
+  const status = txStatusFilter.value
+
+  return recentTransactions.value.filter((tx) => {
+    // 1. Status Filter
+    if (status === 'COMPLETED' && tx.status !== 'COMPLETED') {
+      return false
+    }
+    if (status === 'VOID' && tx.status !== 'VOID' && tx.status !== 'VOIDED') {
+      return false
+    }
+
+    // 2. Search Query (receipt code, void reason, or tenant name / item notes in transaction)
+    if (q) {
+      const code = (tx.receipt_code || '').toLowerCase()
+      const voidReason = (tx.void_reason || '').toLowerCase()
+      let matches = code.includes(q) || voidReason.includes(q)
+
+      if (!matches && tx.transaction_items && tx.transaction_items.length > 0) {
+        matches = tx.transaction_items.some((item) => {
+          const tName = (item.tenants?.name || '').toLowerCase()
+          const note = (item.item_note || '').toLowerCase()
+          return tName.includes(q) || note.includes(q)
+        })
+      }
+
+      if (!matches) return false
+    }
+
+    return true
+  })
+})
 
 let realtimeChannel = null
 
@@ -1124,6 +1375,10 @@ async function fetchRecentTransactions() {
 async function onEventChange() {
   cart.value = []
   receiptCode.value = 'AUTO'
+  tenantSearchQuery.value = ''
+  selectedTenantCategory.value = 'ALL'
+  txSearchQuery.value = ''
+  txStatusFilter.value = 'ALL'
   await Promise.all([fetchTenants(), fetchRecentTransactions()])
   subscribeRealtime()
 }
@@ -1359,6 +1614,6 @@ onUnmounted(() => {
 }
 .drawer-enter-to,
 .drawer-leave-from {
-  max-height: 384px;
+  max-height: 520px;
 }
 </style>
