@@ -444,11 +444,16 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
   - Protected at route level by Supabase Auth (staff login).
   - Secondary 6-digit PIN Lock Gate (`VITE_ADMIN_PIN`, default `'000000'`) for operational security on shared cashier devices.
   - Header includes dedicated `"Kunci"` and `"Keluar"` (Logout) buttons, plus a logout button directly on the PIN lock screen.
-- **Mobile Responsiveness Polish (< 640px / iPhone 15 390px Viewport)**:
+- **Mobile Responsiveness & Touch Optimization (< 768px / Mobile Viewport)**:
   - Header: non-wrapping `PopUpPOS Admin` title, compact right-side buttons with responsive labels (`Kasir` on mobile vs `Cashier View` on desktop; icon-only with `aria-label` for `Kunci` and `Keluar` on mobile).
-  - Tab Bar: horizontal scrollable with `no-scrollbar` and `shrink-0` to eliminate multi-line wrapping on narrow devices.
-  - KPI Summary Cards: 2-column mobile layout where Gross Revenue spans full width and cards 2-5 form a balanced 2x2 grid, transitioning seamlessly to 5 columns on desktop (`lg:grid-cols-5`).
-  - Tables & Actions: wrapped in `overflow-x-auto` with `whitespace-nowrap` on action button groups to prevent awkward line breaks on mobile.
+  - Tab Bar: horizontal scrollable with `no-scrollbar`, `shrink-0`, and `touch-pan-x overscroll-x-contain` to eliminate scroll hijacking on iOS Safari. Automatic smooth scroll-to-top (`watch(activeTab, ...)`) on tab switch.
+  - KPI Summary Cards: 2-column mobile layout where Gross Revenue and Tenant Net Payout span full rows while Venue/EO cuts sit side-by-side; duplicate compact payment breakdown mini-strip is hidden on mobile (`hidden sm:block`) in favor of the full reconciliation card.
+  - **Stacked Mobile Cards (`md:hidden`) for All 3 Tables**:
+    - **Settlement & Payout:** Clean touch cards with Booth #, tenant name, category, payout status toggle pill, 2x2 financial metric grid (Gross, Net, Venue Cut, Org Cut), full-width action buttons (PDF, Salin WA), and compact Totals summary card.
+    - **Tenant Management:** Cards displaying Booth #, name, category, clear revenue split string, and direct action row (Undangan WA, Buka WA, Portal link, Edit, Delete) without horizontal scroll.
+    - **Master Tenant Directory:** Cards with Brand Name, category badge, Instagram link, PIC & clickable WhatsApp chat link, bank details, active event registration badge, and 1-tap Assign/Edit/Delete buttons.
+  - Tables on Desktop/Tablet: preserved completely intact via `hidden md:block`.
+  - Modals Safe-Area: bottom padding (`pb-24 sm:pb-6`) inside scroll containers ensures submit buttons stay clear of the floating iOS bottom navigation bar.
 - **3-Tab Admin Workspace Architecture**:
   - Replaces long, cluttered single-page scrolling with a sticky, focused horizontal tab navigation bar:
     1. **`Overview & Settlement` (Default)**:

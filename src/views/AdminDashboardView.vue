@@ -132,6 +132,11 @@ function handleKeydown(e) {
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const activeTab = ref('overview') // 'overview' | 'lineup' | 'master'
+
+watch(activeTab, () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+})
+
 const events = ref([])
 const selectedEventId = ref(null)
 const tenants = ref([])
@@ -1822,7 +1827,7 @@ async function copyTenantWaSummary(row) {
 
       <!-- ── 3-Tab Workspace Bar ───────────────────────────────────────── -->
       <div class="border-t border-slate-800/80 bg-slate-900/90 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2 touch-pan-x overscroll-x-contain">
           <button
             @click="activeTab = 'overview'"
             :class="activeTab === 'overview'
@@ -1975,14 +1980,14 @@ async function copyTenantWaSummary(row) {
               </div>
 
               <!-- Card 4: Tenant Net Payout -->
-              <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
+              <div class="col-span-2 sm:col-span-1 bg-slate-900 border border-emerald-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
                 <p class="text-[11px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wider">Tenant Net Payout</p>
                 <p class="text-lg sm:text-2xl font-bold text-emerald-400">{{ formatRupiah(totalTenantNet) }}</p>
                 <p class="text-[11px] sm:text-xs text-slate-500">Hak bersih semua tenant</p>
               </div>
 
-              <!-- Card 5: Payment Breakdown -->
-              <div class="bg-slate-900 border border-sky-500/20 rounded-2xl p-3.5 sm:p-5 space-y-2 sm:space-y-3 col-span-2 sm:col-span-2 lg:col-span-1">
+              <!-- Card 5: Payment Breakdown (Duplicate summary hidden on mobile since full Reconciliation card follows) -->
+              <div class="hidden sm:block bg-slate-900 border border-sky-500/20 rounded-2xl p-3.5 sm:p-5 space-y-2 sm:space-y-3 col-span-2 sm:col-span-2 lg:col-span-1">
                 <p class="text-[11px] sm:text-xs font-semibold text-sky-400 uppercase tracking-wider">Payment Breakdown</p>
                 <div class="flex justify-between items-center">
                   <div class="space-y-0.5">
@@ -2148,84 +2153,185 @@ async function copyTenantWaSummary(row) {
             <div v-else-if="settlementRows.length === 0" class="text-center py-10 text-slate-500 text-sm">
               Belum ada tenant di event ini. Masukkan tenant di tab Event & Lineup.
             </div>
-            <div v-else class="overflow-x-auto rounded-xl border border-slate-800">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="bg-slate-800/90 text-slate-400 text-xs uppercase tracking-wider">
-                    <th class="px-4 py-3 text-left">Booth #</th>
-                    <th class="px-4 py-3 text-left">Tenant Name</th>
-                    <th class="px-4 py-3 text-left">Category</th>
-                    <th class="px-4 py-3 text-right">Gross Sales</th>
-                    <th class="px-4 py-3 text-right">Venue Cut</th>
-                    <th class="px-4 py-3 text-right">Org. Cut</th>
-                    <th class="px-4 py-3 text-right">Net Payout</th>
-                    <th class="px-4 py-3 text-center">Payout Status</th>
-                    <th class="px-4 py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800">
-                  <tr
-                    v-for="row in settlementRows"
-                    :key="row.id"
-                    class="hover:bg-slate-800/50 transition-colors"
-                  >
-                    <td class="px-4 py-3 font-mono text-slate-300 text-xs">{{ row.booth_number || '—' }}</td>
-                    <td class="px-4 py-3 font-medium text-slate-100">{{ row.name }}</td>
-                    <td class="px-4 py-3 text-slate-400">{{ row.category || '—' }}</td>
-                    <td class="px-4 py-3 text-right text-slate-200 font-mono">{{ formatRupiah(row.gross) }}</td>
-                    <td class="px-4 py-3 text-right text-violet-400 font-mono font-semibold">{{ formatRupiah(row.venueCut) }}</td>
-                    <td class="px-4 py-3 text-right text-amber-400 font-mono font-semibold">{{ formatRupiah(row.orgCut) }}</td>
-                    <td class="px-4 py-3 text-right text-emerald-400 font-mono font-semibold">{{ formatRupiah(row.net) }}</td>
-                    <td class="px-4 py-3 text-center">
-                      <button
-                        @click="togglePayoutStatus(row)"
-                        :class="row.payout_status === 'SETTLED'
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30'"
-                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer"
-                      >
-                        <Check v-if="row.payout_status === 'SETTLED'" class="w-3 h-3" />
-                        {{ row.payout_status }}
-                      </button>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                      <div class="flex items-center justify-center gap-1.5 whitespace-nowrap">
+            <div v-else class="space-y-4">
+              <!-- Desktop / Tablet Table View (>= 768px) -->
+              <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-slate-800/90 text-slate-400 text-xs uppercase tracking-wider">
+                      <th class="px-4 py-3 text-left">Booth #</th>
+                      <th class="px-4 py-3 text-left">Tenant Name</th>
+                      <th class="px-4 py-3 text-left">Category</th>
+                      <th class="px-4 py-3 text-right">Gross Sales</th>
+                      <th class="px-4 py-3 text-right">Venue Cut</th>
+                      <th class="px-4 py-3 text-right">Org. Cut</th>
+                      <th class="px-4 py-3 text-right">Net Payout</th>
+                      <th class="px-4 py-3 text-center">Payout Status</th>
+                      <th class="px-4 py-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800">
+                    <tr
+                      v-for="row in settlementRows"
+                      :key="row.id"
+                      class="hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td class="px-4 py-3 font-mono text-slate-300 text-xs">{{ row.booth_number || '—' }}</td>
+                      <td class="px-4 py-3 font-medium text-slate-100">{{ row.name }}</td>
+                      <td class="px-4 py-3 text-slate-400">{{ row.category || '—' }}</td>
+                      <td class="px-4 py-3 text-right text-slate-200 font-mono">{{ formatRupiah(row.gross) }}</td>
+                      <td class="px-4 py-3 text-right text-violet-400 font-mono font-semibold">{{ formatRupiah(row.venueCut) }}</td>
+                      <td class="px-4 py-3 text-right text-amber-400 font-mono font-semibold">{{ formatRupiah(row.orgCut) }}</td>
+                      <td class="px-4 py-3 text-right text-emerald-400 font-mono font-semibold">{{ formatRupiah(row.net) }}</td>
+                      <td class="px-4 py-3 text-center">
                         <button
-                          @click="exportTenantPdf(row)"
-                          class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500/40 transition-colors cursor-pointer"
-                          :title="`Unduh slip settlement PDF untuk ${row.name}`"
+                          @click="togglePayoutStatus(row)"
+                          :class="row.payout_status === 'SETTLED'
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30'"
+                          class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer"
                         >
-                          <FileText class="w-3.5 h-3.5 text-emerald-400" />
-                          <span>PDF</span>
+                          <Check v-if="row.payout_status === 'SETTLED'" class="w-3 h-3" />
+                          {{ row.payout_status }}
                         </button>
-                        <button
-                          @click="copyTenantWaSummary(row)"
-                          :class="copiedWaId === row.id
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-green-400 border-slate-700 hover:border-green-500/40'"
-                          class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
-                          :title="`Salin ringkasan settlement WhatsApp untuk ${row.name}`"
-                        >
-                          <Check v-if="copiedWaId === row.id" class="w-3.5 h-3.5 text-emerald-400" />
-                          <MessageSquare v-else class="w-3.5 h-3.5 text-green-400" />
-                          <span>{{ copiedWaId === row.id ? 'Tersalin' : 'WA' }}</span>
-                        </button>
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                        <div class="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                          <button
+                            @click="exportTenantPdf(row)"
+                            class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500/40 transition-colors cursor-pointer"
+                            :title="`Unduh slip settlement PDF untuk ${row.name}`"
+                          >
+                            <FileText class="w-3.5 h-3.5 text-emerald-400" />
+                            <span>PDF</span>
+                          </button>
+                          <button
+                            @click="copyTenantWaSummary(row)"
+                            :class="copiedWaId === row.id
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                              : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-green-400 border-slate-700 hover:border-green-500/40'"
+                            class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
+                            :title="`Salin ringkasan settlement WhatsApp untuk ${row.name}`"
+                          >
+                            <Check v-if="copiedWaId === row.id" class="w-3.5 h-3.5 text-emerald-400" />
+                            <MessageSquare v-else class="w-3.5 h-3.5 text-green-400" />
+                            <span>{{ copiedWaId === row.id ? 'Tersalin' : 'WA' }}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                  <!-- Totals footer -->
+                  <tfoot>
+                    <tr class="bg-slate-800/80 text-xs font-bold border-t-2 border-slate-700">
+                      <td colspan="3" class="px-4 py-3 text-slate-400 uppercase tracking-wider">Totals</td>
+                      <td class="px-4 py-3 text-right text-slate-200 font-mono">{{ formatRupiah(totalGross) }}</td>
+                      <td class="px-4 py-3 text-right text-violet-400 font-mono">{{ formatRupiah(totalVenueCut) }}</td>
+                      <td class="px-4 py-3 text-right text-amber-400 font-mono">{{ formatRupiah(totalOrganizerCut) }}</td>
+                      <td class="px-4 py-3 text-right text-emerald-400 font-mono">{{ formatRupiah(totalTenantNet) }}</td>
+                      <td colspan="2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <!-- Mobile Stacked Card View (< 768px) -->
+              <div class="md:hidden space-y-3">
+                <div
+                  v-for="row in settlementRows"
+                  :key="row.id"
+                  class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3"
+                >
+                  <!-- Card Header: Booth + Name + Category + Payout Status Pill -->
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="space-y-1 min-w-0 flex-1">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-amber-400 border border-slate-700">
+                          #{{ row.booth_number || '—' }}
+                        </span>
+                        <h4 class="font-bold text-slate-100 text-sm truncate">{{ row.name }}</h4>
                       </div>
-                    </td>
-                  </tr>
-                </tbody>
-                <!-- Totals footer -->
-                <tfoot>
-                  <tr class="bg-slate-800/80 text-xs font-bold border-t-2 border-slate-700">
-                    <td colspan="3" class="px-4 py-3 text-slate-400 uppercase tracking-wider">Totals</td>
-                    <td class="px-4 py-3 text-right text-slate-200 font-mono">{{ formatRupiah(totalGross) }}</td>
-                    <td class="px-4 py-3 text-right text-violet-400 font-mono">{{ formatRupiah(totalVenueCut) }}</td>
-                    <td class="px-4 py-3 text-right text-amber-400 font-mono">{{ formatRupiah(totalOrganizerCut) }}</td>
-                    <td class="px-4 py-3 text-right text-emerald-400 font-mono">{{ formatRupiah(totalTenantNet) }}</td>
-                    <td colspan="2"></td>
-                  </tr>
-                </tfoot>
-              </table>
+                      <p class="text-xs text-slate-400">{{ row.category || 'Umum' }}</p>
+                    </div>
+                    <button
+                      @click="togglePayoutStatus(row)"
+                      :class="row.payout_status === 'SETTLED'
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border-amber-500/30'"
+                      class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer touch-manipulation select-none"
+                    >
+                      <Check v-if="row.payout_status === 'SETTLED'" class="w-3 h-3" />
+                      {{ row.payout_status }}
+                    </button>
+                  </div>
+
+                  <!-- 2x2 Metric Grid -->
+                  <div class="grid grid-cols-2 gap-2 bg-slate-900/80 border border-slate-800/80 rounded-lg p-2.5 text-xs">
+                    <div>
+                      <span class="text-[11px] text-slate-400 block">Gross Sales</span>
+                      <span class="font-mono font-bold text-slate-200">{{ formatRupiah(row.gross) }}</span>
+                    </div>
+                    <div>
+                      <span class="text-[11px] text-emerald-400 block">Net Payout</span>
+                      <span class="font-mono font-bold text-emerald-400">{{ formatRupiah(row.net) }}</span>
+                    </div>
+                    <div>
+                      <span class="text-[11px] text-violet-400 block">Venue Cut</span>
+                      <span class="font-mono text-violet-400 font-semibold">{{ formatRupiah(row.venueCut) }}</span>
+                    </div>
+                    <div>
+                      <span class="text-[11px] text-amber-400 block">Org. Cut</span>
+                      <span class="font-mono text-amber-400 font-semibold">{{ formatRupiah(row.orgCut) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Bottom Action Buttons: PDF, Salin WA -->
+                  <div class="flex items-center gap-2 pt-1">
+                    <button
+                      @click="exportTenantPdf(row)"
+                      class="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-700 transition-colors cursor-pointer touch-manipulation select-none"
+                      :title="`Unduh slip settlement PDF untuk ${row.name}`"
+                    >
+                      <FileText class="w-3.5 h-3.5 text-emerald-400" />
+                      <span>PDF</span>
+                    </button>
+                    <button
+                      @click="copyTenantWaSummary(row)"
+                      :class="copiedWaId === row.id
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-green-500/40'"
+                      class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border transition-colors cursor-pointer touch-manipulation select-none"
+                      :title="`Salin ringkasan settlement WhatsApp untuk ${row.name}`"
+                    >
+                      <Check v-if="copiedWaId === row.id" class="w-3.5 h-3.5 text-emerald-400" />
+                      <MessageSquare v-else class="w-3.5 h-3.5 text-green-400" />
+                      <span>{{ copiedWaId === row.id ? 'Tersalin' : 'Salin WA' }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Compact Totals Summary Card at bottom of mobile list -->
+                <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                  <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Keseluruhan</span>
+                    <span class="font-mono font-bold text-sm text-white">{{ formatRupiah(totalGross) }}</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-2 text-xs pt-1">
+                    <div>
+                      <span class="text-[10px] text-violet-400 block">Venue Cut</span>
+                      <span class="font-mono font-semibold text-violet-400">{{ formatRupiah(totalVenueCut) }}</span>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-amber-400 block">Org. Cut</span>
+                      <span class="font-mono font-semibold text-amber-400">{{ formatRupiah(totalOrganizerCut) }}</span>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-emerald-400 block">Tenant Net</span>
+                      <span class="font-mono font-bold text-emerald-400">{{ formatRupiah(totalTenantNet) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </template>
@@ -2260,7 +2366,7 @@ async function copyTenantWaSummary(row) {
           <div class="relative flex-1 max-w-sm">
             <select
               v-model="selectedEventId"
-              class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 pr-9 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 truncate"
             >
               <option value="" disabled>-- Select an event --</option>
               <option v-for="ev in events" :key="ev.id" :value="ev.id">
@@ -2747,108 +2853,214 @@ async function copyTenantWaSummary(row) {
           <div v-else-if="tenants.length === 0" class="text-center py-10 text-slate-500 text-sm">
             No tenants for this event yet. Add one above.
           </div>
-          <div v-else class="overflow-x-auto rounded-xl border border-slate-800">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                  <th class="px-4 py-3 text-left">Booth #</th>
-                  <th class="px-4 py-3 text-left">Name</th>
-                  <th class="px-4 py-3 text-left">Category</th>
-                  <th class="px-4 py-3 text-center">Share % (Venue / EO)</th>
-                  <th class="px-4 py-3 text-center">Payout Status</th>
-                  <th class="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800">
-                <tr
-                  v-for="tenant in tenants"
-                  :key="tenant.id"
-                  class="hover:bg-slate-800/50 transition-colors"
-                >
-                  <td class="px-4 py-3 font-mono text-slate-300">{{ tenant.booth_number || '—' }}</td>
-                  <td class="px-4 py-3 font-medium text-slate-100">{{ tenant.name }}</td>
-                  <td class="px-4 py-3 text-slate-400">{{ tenant.category || '—' }}</td>
-                  <td class="px-4 py-3 text-center font-medium">
-                    <span class="text-violet-400">{{ tenant.venue_share_percent ?? 10 }}%</span>
-                    <span class="text-slate-500 mx-1">/</span>
-                    <span class="text-amber-400">{{ tenant.organizer_share_percent ?? 0 }}%</span>
-                    <span class="block text-[10px] text-slate-400 font-normal">Total: {{ (Number(tenant.venue_share_percent ?? 10) + Number(tenant.organizer_share_percent ?? 0)) }}%</span>
-                  </td>
-                  <td class="px-4 py-3 text-center">
-                    <span
-                      :class="tenant.payout_status === 'SETTLED'
-                        ? 'bg-emerald-400/15 text-emerald-400 border border-emerald-400/30'
-                        : 'bg-amber-400/15 text-amber-400 border border-amber-400/30'"
-                      class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                    >
-                      {{ tenant.payout_status }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap whitespace-nowrap">
-                      <button
-                        @click="openEditTenant(tenant)"
-                        class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
-                        title="Edit tenant / share override"
+          <div v-else class="space-y-4">
+            <!-- Desktop / Tablet Table View (>= 768px) -->
+            <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+                    <th class="px-4 py-3 text-left">Booth #</th>
+                    <th class="px-4 py-3 text-left">Name</th>
+                    <th class="px-4 py-3 text-left">Category</th>
+                    <th class="px-4 py-3 text-center">Share % (Venue / EO)</th>
+                    <th class="px-4 py-3 text-center">Payout Status</th>
+                    <th class="px-4 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <tr
+                    v-for="tenant in tenants"
+                    :key="tenant.id"
+                    class="hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td class="px-4 py-3 font-mono text-slate-300">{{ tenant.booth_number || '—' }}</td>
+                    <td class="px-4 py-3 font-medium text-slate-100">{{ tenant.name }}</td>
+                    <td class="px-4 py-3 text-slate-400">{{ tenant.category || '—' }}</td>
+                    <td class="px-4 py-3 text-center font-medium">
+                      <span class="text-violet-400">{{ tenant.venue_share_percent ?? 10 }}%</span>
+                      <span class="text-slate-500 mx-1">/</span>
+                      <span class="text-amber-400">{{ tenant.organizer_share_percent ?? 0 }}%</span>
+                      <span class="block text-[10px] text-slate-400 font-normal">Total: {{ (Number(tenant.venue_share_percent ?? 10) + Number(tenant.organizer_share_percent ?? 0)) }}%</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <span
+                        :class="tenant.payout_status === 'SETTLED'
+                          ? 'bg-emerald-400/15 text-emerald-400 border border-emerald-400/30'
+                          : 'bg-amber-400/15 text-amber-400 border border-amber-400/30'"
+                        class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold"
                       >
-                        <Pencil class="w-3.5 h-3.5" />
-                        <span>Edit</span>
-                      </button>
+                        {{ tenant.payout_status }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap whitespace-nowrap">
+                        <button
+                          @click="openEditTenant(tenant)"
+                          class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+                          title="Edit tenant / share override"
+                        >
+                          <Pencil class="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
 
-                      <!-- Undangan Portal WA (Copy formatted text) -->
-                      <button
-                        @click="copyTenantPortalInvite(tenant)"
-                        :class="copiedInviteId === tenant.id
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 hover:border-emerald-500/40'"
-                        class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
-                        :title="`Salin format pesan undangan portal WhatsApp untuk ${tenant.name}`"
-                      >
-                        <Check v-if="copiedInviteId === tenant.id" class="w-3.5 h-3.5 text-emerald-400" />
-                        <MessageSquare v-else class="w-3.5 h-3.5 text-emerald-400" />
-                        <span>{{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}</span>
-                      </button>
+                        <!-- Undangan Portal WA (Copy formatted text) -->
+                        <button
+                          @click="copyTenantPortalInvite(tenant)"
+                          :class="copiedInviteId === tenant.id
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 hover:border-emerald-500/40'"
+                          class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
+                          :title="`Salin format pesan undangan portal WhatsApp untuk ${tenant.name}`"
+                        >
+                          <Check v-if="copiedInviteId === tenant.id" class="w-3.5 h-3.5 text-emerald-400" />
+                          <MessageSquare v-else class="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}</span>
+                        </button>
 
-                      <!-- Buka Chat WA Langsung jika nomor WhatsApp terdaftar -->
-                      <a
-                        v-if="getTenantWhatsappUrl(tenant)"
-                        :href="getTenantWhatsappUrl(tenant)"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="flex items-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
-                        :title="`Buka chat WhatsApp ke ${tenant.name}`"
-                      >
-                        <ExternalLink class="w-3 h-3" />
-                        <span>Buka WA</span>
-                      </a>
+                        <!-- Buka Chat WA Langsung jika nomor WhatsApp terdaftar -->
+                        <a
+                          v-if="getTenantWhatsappUrl(tenant)"
+                          :href="getTenantWhatsappUrl(tenant)"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="flex items-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                          :title="`Buka chat WhatsApp ke ${tenant.name}`"
+                        >
+                          <ExternalLink class="w-3 h-3" />
+                          <span>Buka WA</span>
+                        </a>
 
-                      <!-- Salin Raw Link Portal -->
-                      <button
-                        @click="copyPortalLink(tenant)"
-                        :class="copiedId === tenant.id
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
-                        class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
-                        title="Salin raw URL link portal tenant"
-                      >
-                        <Check v-if="copiedId === tenant.id" class="w-3.5 h-3.5" />
-                        <Copy v-else class="w-3.5 h-3.5" />
-                        <span>{{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}</span>
-                      </button>
+                        <!-- Salin Raw Link Portal -->
+                        <button
+                          @click="copyPortalLink(tenant)"
+                          :class="copiedId === tenant.id
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                          class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
+                          title="Salin raw URL link portal tenant"
+                        >
+                          <Check v-if="copiedId === tenant.id" class="w-3.5 h-3.5" />
+                          <Copy v-else class="w-3.5 h-3.5" />
+                          <span>{{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}</span>
+                        </button>
 
-                      <!-- Hapus dari Lineup -->
-                      <button
-                        @click="removeTenantFromLineup(tenant)"
-                        class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
-                        title="Hapus tenant dari lineup event ini"
-                      >
-                        <Trash2 class="w-3.5 h-3.5" />
-                      </button>
+                        <!-- Hapus dari Lineup -->
+                        <button
+                          @click="removeTenantFromLineup(tenant)"
+                          class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
+                          title="Hapus tenant dari lineup event ini"
+                        >
+                          <Trash2 class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Mobile Stacked Card View (< 768px) -->
+            <div class="md:hidden space-y-3">
+              <div
+                v-for="tenant in tenants"
+                :key="tenant.id"
+                class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3"
+              >
+                <!-- Card Header: Booth + Name + Payout Status -->
+                <div class="flex items-start justify-between gap-2">
+                  <div class="space-y-1 min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-amber-400 border border-slate-700">
+                        #{{ tenant.booth_number || '—' }}
+                      </span>
+                      <h4 class="font-bold text-slate-100 text-sm truncate">{{ tenant.name }}</h4>
                     </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    <p class="text-xs text-slate-400">{{ tenant.category || 'Umum' }}</p>
+                  </div>
+                  <span
+                    :class="tenant.payout_status === 'SETTLED'
+                      ? 'bg-emerald-400/15 text-emerald-400 border border-emerald-400/30'
+                      : 'bg-amber-400/15 text-amber-400 border border-amber-400/30'"
+                    class="shrink-0 inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                  >
+                    {{ tenant.payout_status }}
+                  </span>
+                </div>
+
+                <!-- Revenue Split Info -->
+                <div class="bg-slate-900/80 border border-slate-800/80 rounded-lg p-2.5 text-xs flex items-center justify-between">
+                  <span class="text-slate-400">Bagi Hasil:</span>
+                  <span class="font-medium">
+                    <span class="text-violet-400">Venue {{ tenant.venue_share_percent ?? 10 }}%</span>
+                    <span class="text-slate-500 mx-1">/</span>
+                    <span class="text-amber-400">EO {{ tenant.organizer_share_percent ?? 0 }}%</span>
+                    <span class="text-slate-400 ml-1.5">(Total: {{ (Number(tenant.venue_share_percent ?? 10) + Number(tenant.organizer_share_percent ?? 0)) }}%)</span>
+                  </span>
+                </div>
+
+                <!-- Action Row: Undangan WA, Buka WA, Portal, Edit, Delete -->
+                <div class="flex items-center gap-1.5 flex-wrap pt-1">
+                  <!-- Undangan Portal WA -->
+                  <button
+                    @click="copyTenantPortalInvite(tenant)"
+                    :class="copiedInviteId === tenant.id
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 hover:border-emerald-500/40'"
+                    class="flex-1 flex items-center justify-center gap-1 text-xs font-semibold py-2 px-2.5 rounded-lg border transition-colors cursor-pointer touch-manipulation select-none"
+                    :title="`Salin format pesan undangan portal WhatsApp untuk ${tenant.name}`"
+                  >
+                    <Check v-if="copiedInviteId === tenant.id" class="w-3.5 h-3.5 text-emerald-400" />
+                    <MessageSquare v-else class="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}</span>
+                  </button>
+
+                  <!-- Buka WA Chat jika ada nomor HP -->
+                  <a
+                    v-if="getTenantWhatsappUrl(tenant)"
+                    :href="getTenantWhatsappUrl(tenant)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center justify-center gap-1 text-xs font-semibold py-2 px-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer touch-manipulation select-none"
+                    :title="`Buka chat WhatsApp ke ${tenant.name}`"
+                  >
+                    <ExternalLink class="w-3.5 h-3.5" />
+                    <span>Buka WA</span>
+                  </a>
+
+                  <!-- Salin Raw Link Portal -->
+                  <button
+                    @click="copyPortalLink(tenant)"
+                    :class="copiedId === tenant.id
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                    class="flex items-center justify-center gap-1 text-xs font-semibold py-2 px-2.5 rounded-lg border transition-colors cursor-pointer touch-manipulation select-none"
+                    title="Salin raw URL link portal tenant"
+                  >
+                    <Check v-if="copiedId === tenant.id" class="w-3.5 h-3.5" />
+                    <Copy v-else class="w-3.5 h-3.5" />
+                    <span>{{ copiedId === tenant.id ? 'Copied' : 'Portal' }}</span>
+                  </button>
+
+                  <!-- Edit Tenant -->
+                  <button
+                    @click="openEditTenant(tenant)"
+                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer touch-manipulation select-none"
+                    title="Edit tenant / share override"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+
+                  <!-- Hapus dari Lineup -->
+                  <button
+                    @click="removeTenantFromLineup(tenant)"
+                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer touch-manipulation select-none"
+                    title="Hapus tenant dari lineup event ini"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -2952,27 +3164,150 @@ async function copyTenantWaSummary(row) {
             </button>
           </div>
 
-          <div v-else class="overflow-x-auto rounded-xl border border-slate-800">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-slate-800/80 text-slate-400 text-xs uppercase tracking-wider">
-                  <th class="px-4 py-3 text-left">Brand Name</th>
-                  <th class="px-4 py-3 text-left">Kategori</th>
-                  <th class="px-4 py-3 text-left">PIC & Kontak</th>
-                  <th class="px-4 py-3 text-left">Bank / Rekening</th>
-                  <th class="px-4 py-3 text-center">Status di Event Aktif</th>
-                  <th class="px-4 py-3 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800">
-                <tr
-                  v-for="m in filteredMasterTenants"
-                  :key="m.id"
-                  class="hover:bg-slate-800/50 transition-colors"
-                >
-                  <td class="px-4 py-3">
+          <div v-else class="space-y-4">
+            <!-- Desktop / Tablet Table View (>= 768px) -->
+            <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-slate-800/80 text-slate-400 text-xs uppercase tracking-wider">
+                    <th class="px-4 py-3 text-left">Brand Name</th>
+                    <th class="px-4 py-3 text-left">Kategori</th>
+                    <th class="px-4 py-3 text-left">PIC & Kontak</th>
+                    <th class="px-4 py-3 text-left">Bank / Rekening</th>
+                    <th class="px-4 py-3 text-center">Status di Event Aktif</th>
+                    <th class="px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <tr
+                    v-for="m in filteredMasterTenants"
+                    :key="m.id"
+                    class="hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-slate-100 block">{{ m.name }}</span>
+                        <a
+                          v-if="m.instagram"
+                          :href="'https://instagram.com/' + m.instagram.replace(/^@/, '')"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="inline-flex items-center gap-0.5 text-[11px] font-semibold text-pink-400 hover:text-pink-300 hover:underline bg-pink-500/10 border border-pink-500/20 rounded-md px-1.5 py-0.5"
+                        >
+                          @{{ m.instagram.replace(/^@/, '') }}
+                        </a>
+                      </div>
+                      <span class="text-[11px] text-slate-400 block mt-0.5">
+                        {{ m.lastEventName ? `Event terakhir: ${m.lastEventName}` : 'Belum pernah ikut event' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="inline-block px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                        {{ m.category || '—' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-xs">
+                      <div v-if="m.pic_name || m.whatsapp" class="space-y-0.5">
+                        <span v-if="m.pic_name" class="font-medium text-slate-200 block">{{ m.pic_name }}</span>
+                        <div v-if="m.whatsapp" class="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
+                          <span class="text-emerald-400 font-semibold">WA:</span>
+                          <a
+                            :href="'https://wa.me/' + m.whatsapp.replace(/\D/g, '')"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hover:text-emerald-300 hover:underline"
+                          >
+                            {{ m.whatsapp }}
+                          </a>
+                        </div>
+                      </div>
+                      <span v-else class="text-slate-400">{{ m.contact_info || '—' }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-xs">
+                      <div v-if="m.bank_name || m.bank_account" class="space-y-0.5">
+                        <div class="flex items-center gap-1.5">
+                          <span v-if="m.bank_name" class="font-bold text-slate-200 uppercase tracking-wide">{{ m.bank_name }}</span>
+                          <span v-if="m.bank_account" class="font-mono text-slate-300">{{ m.bank_account }}</span>
+                        </div>
+                        <span v-if="m.bank_holder" class="text-[11px] text-slate-400 block">
+                          a.n. {{ m.bank_holder }}
+                        </span>
+                      </div>
+                      <span v-else class="font-mono text-slate-300">{{ m.bank_info || '—' }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <span
+                        v-if="tenants.some((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                      >
+                        <Check class="w-3 h-3" />
+                        Terdaftar (Booth {{ tenants.find((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())?.booth_number || '—' }})
+                      </span>
+                      <span
+                        v-else-if="selectedEventId"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700"
+                      >
+                        Belum di event ini
+                      </span>
+                      <span
+                        v-else
+                        class="text-xs text-slate-500 italic"
+                      >
+                        Pilih event di Tab 1/2
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <div class="flex items-center justify-center gap-2 whitespace-nowrap">
+                        <button
+                          @click="openAssignSingleMasterModal(m)"
+                          :disabled="events.length === 0"
+                          class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                          :title="events.length === 0 ? 'Belum ada event' : 'Tugaskan brand ke event'"
+                        >
+                          <Plus class="w-3.5 h-3.5" />
+                          <span>Assign</span>
+                        </button>
+                        <button
+                          @click="openEditMasterModal(m)"
+                          class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+                          title="Edit profil brand"
+                        >
+                          <Pencil class="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          @click="deleteMasterTenant(m)"
+                          class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
+                          title="Hapus dari master directory"
+                        >
+                          <Trash2 class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Mobile Stacked Card View (< 768px) -->
+            <div class="md:hidden space-y-3">
+              <div
+                v-for="m in filteredMasterTenants"
+                :key="m.id"
+                class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3"
+              >
+                <!-- Card Header: Brand Name + Category + Instagram -->
+                <div class="flex items-start justify-between gap-2">
+                  <div class="space-y-1 min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-bold text-slate-100 block">{{ m.name }}</span>
+                      <h4 class="font-bold text-slate-100 text-sm truncate">{{ m.name }}</h4>
+                      <span
+                        v-if="m.category"
+                        class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                      >
+                        {{ m.category }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
                       <a
                         v-if="m.instagram"
                         :href="'https://instagram.com/' + m.instagram.replace(/^@/, '')"
@@ -2982,19 +3317,35 @@ async function copyTenantWaSummary(row) {
                       >
                         @{{ m.instagram.replace(/^@/, '') }}
                       </a>
+                      <span class="text-[11px] text-slate-400">
+                        {{ m.lastEventName ? `Terakhir: ${m.lastEventName}` : 'Belum pernah ikut event' }}
+                      </span>
                     </div>
-                    <span class="text-[11px] text-slate-400 block mt-0.5">
-                      {{ m.lastEventName ? `Event terakhir: ${m.lastEventName}` : 'Belum pernah ikut event' }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="inline-block px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
-                      {{ m.category || '—' }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-xs">
-                    <div v-if="m.pic_name || m.whatsapp" class="space-y-0.5">
-                      <span v-if="m.pic_name" class="font-medium text-slate-200 block">{{ m.pic_name }}</span>
+                  </div>
+
+                  <!-- Registration status badge -->
+                  <span
+                    v-if="tenants.some((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())"
+                    class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                  >
+                    <Check class="w-3 h-3" />
+                    Booth {{ tenants.find((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())?.booth_number || '—' }}
+                  </span>
+                  <span
+                    v-else-if="selectedEventId"
+                    class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 text-slate-400 border border-slate-700"
+                  >
+                    Belum di Lineup
+                  </span>
+                </div>
+
+                <!-- Contact & Bank Info Box -->
+                <div class="bg-slate-900/80 border border-slate-800/80 rounded-lg p-2.5 text-xs space-y-1.5">
+                  <!-- PIC & WhatsApp -->
+                  <div v-if="m.pic_name || m.whatsapp" class="flex items-center justify-between text-slate-300">
+                    <span class="text-slate-400">Kontak:</span>
+                    <div class="flex items-center gap-2">
+                      <span v-if="m.pic_name" class="font-medium text-slate-200">{{ m.pic_name }}</span>
                       <div v-if="m.whatsapp" class="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
                         <span class="text-emerald-400 font-semibold">WA:</span>
                         <a
@@ -3007,71 +3358,48 @@ async function copyTenantWaSummary(row) {
                         </a>
                       </div>
                     </div>
-                    <span v-else class="text-slate-400">{{ m.contact_info || '—' }}</span>
-                  </td>
-                  <td class="px-4 py-3 text-xs">
-                    <div v-if="m.bank_name || m.bank_account" class="space-y-0.5">
-                      <div class="flex items-center gap-1.5">
-                        <span v-if="m.bank_name" class="font-bold text-slate-200 uppercase tracking-wide">{{ m.bank_name }}</span>
-                        <span v-if="m.bank_account" class="font-mono text-slate-300">{{ m.bank_account }}</span>
-                      </div>
-                      <span v-if="m.bank_holder" class="text-[11px] text-slate-400 block">
-                        a.n. {{ m.bank_holder }}
-                      </span>
+                  </div>
+
+                  <!-- Bank Info -->
+                  <div v-if="m.bank_name || m.bank_account || m.bank_info" class="flex items-center justify-between text-slate-300 border-t border-slate-800/80 pt-1.5">
+                    <span class="text-slate-400">Rekening:</span>
+                    <div class="text-right">
+                      <span v-if="m.bank_name" class="font-bold uppercase text-slate-200">{{ m.bank_name }} </span>
+                      <span v-if="m.bank_account" class="font-mono text-slate-300">{{ m.bank_account }}</span>
+                      <span v-if="m.bank_holder" class="text-[11px] text-slate-400 block">a.n. {{ m.bank_holder }}</span>
+                      <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-slate-300">{{ m.bank_info }}</span>
                     </div>
-                    <span v-else class="font-mono text-slate-300">{{ m.bank_info || '—' }}</span>
-                  </td>
-                  <td class="px-4 py-3 text-center">
-                    <span
-                      v-if="tenants.some((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())"
-                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                    >
-                      <Check class="w-3 h-3" />
-                      Terdaftar (Booth {{ tenants.find((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())?.booth_number || '—' }})
-                    </span>
-                    <span
-                      v-else-if="selectedEventId"
-                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700"
-                    >
-                      Belum di event ini
-                    </span>
-                    <span
-                      v-else
-                      class="text-xs text-slate-500 italic"
-                    >
-                      Pilih event di Tab 1/2
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-center">
-                    <div class="flex items-center justify-center gap-2 whitespace-nowrap">
-                      <button
-                        @click="openAssignSingleMasterModal(m)"
-                        :disabled="events.length === 0"
-                        class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
-                        :title="events.length === 0 ? 'Belum ada event' : 'Tugaskan brand ke event'"
-                      >
-                        <Plus class="w-3.5 h-3.5" />
-                        <span>Assign</span>
-                      </button>
-                      <button
-                        @click="openEditMasterModal(m)"
-                        class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
-                        title="Edit profil brand"
-                      >
-                        <Pencil class="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        @click="deleteMasterTenant(m)"
-                        class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
-                        title="Hapus dari master directory"
-                      >
-                        <Trash2 class="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                </div>
+
+                <!-- Action Row: Assign, Edit, Delete -->
+                <div class="flex items-center gap-2 pt-1">
+                  <button
+                    @click="openAssignSingleMasterModal(m)"
+                    :disabled="events.length === 0"
+                    class="flex-1 flex items-center justify-center gap-1 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-700 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer touch-manipulation select-none"
+                    :title="events.length === 0 ? 'Belum ada event' : 'Tugaskan brand ke event'"
+                  >
+                    <Plus class="w-3.5 h-3.5" />
+                    <span>Tugaskan ke Event</span>
+                  </button>
+                  <button
+                    @click="openEditMasterModal(m)"
+                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer touch-manipulation select-none"
+                    title="Edit profil brand"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="deleteMasterTenant(m)"
+                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer touch-manipulation select-none"
+                    title="Hapus dari master directory"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -3093,7 +3421,7 @@ async function copyTenantWaSummary(row) {
             </button>
           </div>
 
-          <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          <div class="p-6 pb-24 sm:pb-6 space-y-4 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1">
                 <label class="text-xs font-medium text-slate-400">Tenant Name <span class="text-rose-400">*</span></label>
@@ -3330,7 +3658,7 @@ async function copyTenantWaSummary(row) {
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-4 border-t border-slate-800 bg-slate-800/40 flex items-center justify-between flex-wrap gap-3">
+          <div class="px-6 py-4 pb-8 sm:pb-4 border-t border-slate-800 bg-slate-800/40 flex items-center justify-between flex-wrap gap-3">
             <span class="text-xs text-slate-400 font-medium">
               Terpilih: <strong class="text-emerald-400">{{ selectedMasterIds.size }}</strong> brand
             </span>
@@ -3371,7 +3699,7 @@ async function copyTenantWaSummary(row) {
             </button>
           </div>
 
-          <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          <div class="p-6 pb-24 sm:pb-6 space-y-4 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Brand Name -->
               <div class="space-y-1 sm:col-span-2">
@@ -3519,7 +3847,7 @@ async function copyTenantWaSummary(row) {
             </button>
           </div>
 
-          <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          <div class="p-6 pb-24 sm:pb-6 space-y-4 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Brand Name -->
               <div class="space-y-1 sm:col-span-2">
@@ -3666,7 +3994,7 @@ async function copyTenantWaSummary(row) {
             </button>
           </div>
 
-          <div class="p-6 space-y-4">
+          <div class="p-6 pb-24 sm:pb-6 space-y-4 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
             <div class="space-y-3">
               <div class="space-y-1.5">
                 <label class="text-xs font-medium text-slate-400">Target Event <span class="text-rose-400">*</span></label>
