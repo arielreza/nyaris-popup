@@ -146,6 +146,7 @@ const showCreateEventForm = ref(false)
 const showAddTenantForm = ref(false)
 
 const copiedId = ref(null) // track which tenant link was just copied
+const copiedInviteId = ref(null) // track which tenant invite was just copied
 let realtimeChannel = null
 
 // ─── Create Event Form ────────────────────────────────────────────────────────
@@ -581,13 +582,86 @@ async function addTenant() {
   showAddTenantForm.value = false
 }
 
-// ─── Copy Portal Link ─────────────────────────────────────────────────────────
+// ─── Copy Portal Link & WhatsApp Invite ───────────────────────────────────────
 
 async function copyPortalLink(tenant) {
   const url = `${window.location.origin}/tenant/${tenant.access_token}`
   await navigator.clipboard.writeText(url)
   copiedId.value = tenant.id
   setTimeout(() => { copiedId.value = null }, 2000)
+}
+
+function getLinkedMasterTenant(tenant) {
+  if (!tenant) return null
+  if (tenant.master_tenant_id) {
+    const found = masterTenants.value.find((m) => m.id === tenant.master_tenant_id)
+    if (found) return found
+  }
+  const cleanName = (tenant.name || '').trim().toLowerCase()
+  return masterTenants.value.find((m) => (m.name || '').trim().toLowerCase() === cleanName) || null
+}
+
+function normalizeWhatsappNumber(rawPhone) {
+  if (!rawPhone) return ''
+  let cleaned = String(rawPhone).replace(/\D/g, '')
+  if (cleaned.startsWith('08')) {
+    cleaned = '628' + cleaned.slice(2)
+  } else if (cleaned.startsWith('8')) {
+    cleaned = '628' + cleaned.slice(1)
+  }
+  return cleaned
+}
+
+function buildTenantPortalInviteMessage(tenant) {
+  const ev = selectedEvent.value
+  const evName = ev?.name || 'Event Pop-up'
+  const evDatesStr = ev?.event_dates ? ` (*${ev.event_dates}*)` : ''
+  const tenantName = tenant.name || 'Tenant'
+
+  const master = getLinkedMasterTenant(tenant)
+  const picName = master?.pic_name?.trim()
+  const picStr = picName ? ` (PIC: ${picName})` : ''
+
+  const boothStr = tenant.booth_number && tenant.booth_number !== '—'
+    ? ` (Booth *${tenant.booth_number}*)`
+    : ''
+
+  const portalUrl = `${window.location.origin}/tenant/${tenant.access_token}`
+
+  return [
+    `Halo *${tenantName}*${picStr},`,
+    `Berikut adalah link akses Portal Live Sales untuk event *${evName}*${evDatesStr}${boothStr}:`,
+    ``,
+    `🔗 *Link Portal:* ${portalUrl}`,
+    ``,
+    `💡 *Informasi:*`,
+    `• Pantau rekap penjualan kotor, rincian transaksi, dan bagi hasil bersih secara real-time tanpa perlu login.`,
+    `• Mohon simpan link ini dan jaga kerahasiaannya untuk tim internal booth Anda.`,
+    ``,
+    `Semoga lancar dan sukses untuk penjualannya! 🙏✨`,
+  ].join('\n')
+}
+
+function getTenantWhatsappUrl(tenant) {
+  const master = getLinkedMasterTenant(tenant)
+  const phone = normalizeWhatsappNumber(master?.whatsapp)
+  if (!phone) return null
+  const message = buildTenantPortalInviteMessage(tenant)
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+}
+
+async function copyTenantPortalInvite(tenant) {
+  try {
+    const msg = buildTenantPortalInviteMessage(tenant)
+    await navigator.clipboard.writeText(msg)
+    copiedInviteId.value = tenant.id
+    setTimeout(() => {
+      if (copiedInviteId.value === tenant.id) copiedInviteId.value = null
+    }, 2000)
+    showToast('success', `Undangan portal WA untuk ${tenant.name} berhasil disalin!`)
+  } catch (err) {
+    showToast('error', 'Gagal menyalin undangan portal: ' + err.message)
+  }
 }
 
 // ─── Toggle Payout Status ─────────────────────────────────────────────────────
@@ -2620,27 +2694,58 @@ async function copyTenantWaSummary(row) {
                     </span>
                   </td>
                   <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 flex-wrap">
                       <button
                         @click="openEditTenant(tenant)"
                         class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
                         title="Edit tenant / share override"
                       >
                         <Pencil class="w-3.5 h-3.5" />
-                        Edit
+                        <span>Edit</span>
                       </button>
+
+                      <!-- Undangan Portal WA (Copy formatted text) -->
+                      <button
+                        @click="copyTenantPortalInvite(tenant)"
+                        :class="copiedInviteId === tenant.id
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                          : 'bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 hover:border-emerald-500/40'"
+                        class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
+                        :title="`Salin format pesan undangan portal WhatsApp untuk ${tenant.name}`"
+                      >
+                        <Check v-if="copiedInviteId === tenant.id" class="w-3.5 h-3.5 text-emerald-400" />
+                        <MessageSquare v-else class="w-3.5 h-3.5 text-emerald-400" />
+                        <span>{{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}</span>
+                      </button>
+
+                      <!-- Buka Chat WA Langsung jika nomor WhatsApp terdaftar -->
+                      <a
+                        v-if="getTenantWhatsappUrl(tenant)"
+                        :href="getTenantWhatsappUrl(tenant)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex items-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                        :title="`Buka chat WhatsApp ke ${tenant.name}`"
+                      >
+                        <ExternalLink class="w-3 h-3" />
+                        <span>Buka WA</span>
+                      </a>
+
+                      <!-- Salin Raw Link Portal -->
                       <button
                         @click="copyPortalLink(tenant)"
                         :class="copiedId === tenant.id
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600'"
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
                         class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
-                        title="Copy private portal link"
+                        title="Salin raw URL link portal tenant"
                       >
                         <Check v-if="copiedId === tenant.id" class="w-3.5 h-3.5" />
                         <Copy v-else class="w-3.5 h-3.5" />
-                        {{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}
+                        <span>{{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}</span>
                       </button>
+
+                      <!-- Hapus dari Lineup -->
                       <button
                         @click="removeTenantFromLineup(tenant)"
                         class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"

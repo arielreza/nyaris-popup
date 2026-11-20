@@ -439,7 +439,12 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
            1. **`+ Pilih dari Master`** (`openAssignLineupModal`): Lists all brands from `master_tenants` (enriched with their last joined event or `"Belum pernah ikut event"`), allowing the organizer to multi-select brands, assign booth numbers, and add them to the active event using the event's default share %.
            2. **`+ Tenant Baru`** (Quick-Add form toggle): Adds a vendor directly to the active event lineup AND automatically upserts/links it into `master_tenants` (filling in missing category/bank info if already present) so the master directory remains 100% synchronized.
          - Lineup table showing Booth #, Brand Name (with Master Brand indicator), Category, 3-way Share % split, Payout status badge.
-         - Action buttons: Edit tenant override modal, copy private portal link (`/tenant/:token`) with "Copied!" feedback, and remove tenant from lineup.
+         - Action buttons:
+           - **`Edit`**: Edit tenant override modal (custom share % and category).
+           - **`Undangan WA`**: 1-click copies a personalized Indonesian WhatsApp invitation message with tenant name, PIC name (if available from master record), event dates, booth number, direct portal link, and confidential sales tracking guidance.
+           - **`Buka WA` (`wa.me`)**: Direct link button opening WhatsApp chat with the pre-filled invite message if a WhatsApp number is stored in the linked master record.
+           - **`Portal`**: Copies raw tenant portal link (`/tenant/:token`) with "Copied!" feedback.
+           - **`Delete`**: Safely removes tenant from lineup with active transaction guard and voided transaction auto-cleanup.
          - **Lineup Deletion Safety & Voided Transaction Cleanup**:
            - When attempting to remove a tenant from lineup, inspects all linked `transaction_items` joined with `transactions(id, status)`.
            - **Active transactions guard:** If any non-void transaction exists (`transactions.status !== 'VOID' && transactions.status !== 'VOIDED'`), deletion is blocked with clear Indonesian feedback: `"Tidak dapat menghapus tenant karena masih memiliki transaksi aktif di event ini (void transaksi terkait terlebih dahulu)."` displayed via both an inline warning banner and a toast.
