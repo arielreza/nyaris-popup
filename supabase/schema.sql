@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id        uuid        REFERENCES events(id),
     receipt_code    text        UNIQUE,
+    client_tx_id    uuid,
     payment_method  text        CHECK (payment_method IN ('QRIS', 'CASH')),
     total_amount    numeric     DEFAULT 0,
     cash_tendered   numeric(12,2),
@@ -108,6 +109,8 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cash_tendered numeric(12,2);
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS change_amount numeric(12,2);
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS void_reason text;
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS voided_at timestamptz;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS client_tx_id uuid;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_client_tx_id_unique ON transactions (client_tx_id) WHERE client_tx_id IS NOT NULL;
 DO $$ BEGIN
   ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_status_check;
   ALTER TABLE transactions ADD CONSTRAINT transactions_status_check CHECK (status IN ('COMPLETED', 'VOIDED', 'VOID'));

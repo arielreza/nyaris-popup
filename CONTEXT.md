@@ -167,6 +167,7 @@ A single cashier transaction (a "receipt"), which may contain items from multipl
 | `id` | `uuid` | PK, `DEFAULT gen_random_uuid()` | Unique transaction identifier |
 | `event_id` | `uuid` | `REFERENCES events(id)` | The event this transaction belongs to |
 | `receipt_code` | `text` | `UNIQUE` | Sequential receipt code (e.g. `NYR-0001`, `BZR-0042`) |
+| `client_tx_id` | `uuid` | `UNIQUE (partial index)` | Client-generated idempotency UUID preventing duplicate checkout submissions |
 | `payment_method` | `text` | `CHECK IN ('QRIS','CASH')` | How payment was made |
 | `total_amount` | `numeric` | `DEFAULT 0` | Sum of all item `gross_amount`s |
 | `cash_tendered` | `numeric(12,2)` | — | Cash received from customer (for CASH transactions) |
@@ -389,6 +390,11 @@ Routes are defined in `src/router/index.js` using `createWebHistory()` (HTML5 hi
 - **Sequential Receipt Numbering Trigger**:
   - Cashier UI displays `"AUTO (#)"` indicating sequential numbering handled automatically by the server.
   - On checkout, passes `receipt_code: 'AUTO'`; PostgreSQL trigger `generate_receipt_code()` locks the event (`pg_advisory_xact_lock`) and generates a collision-free sequential code (e.g. `NYR-0001`).
+- **Double-Submit & Unstable-Network Resilience**:
+  - **Synchronous In-Flight Lock:** Non-reactive lock `checkoutInFlight = true` immediately blocks double taps or Enter-key repeats before any async promise executes.
+  - **Idempotency Key (`client_tx_id`):** Generates a client UUID per checkout attempt and stores it with a unique constraint in the database.
+  - **Duplicate Recovery Handling:** If Supabase throws a unique constraint error (`23505`), automatically recovers the existing transaction by `client_tx_id`, checks item integrity, displays the digital receipt, and clears the cart safely.
+  - **Cart Safety & Network Alert:** If connection drops before header creation, cart contents are strictly preserved, error toast alerts cashier to retry (`"Koneksi terganggu. Transaksi belum tersimpan, silakan coba lagi."`), and locks are released in `finally`.
 - Transaction processing: inserts to `transactions` with `cash_tendered` and `change_amount`, batch inserts `transaction_items` with `venue_share_percent` and `organizer_share_percent` (trigger automatically calculates `venue_cut`, `organizer_cut`, and `tenant_net`).
 - **Digital Receipt Modal**:
   - Automatically pops up upon successful payment or when clicking on any receipt code in Recent Transactions.
