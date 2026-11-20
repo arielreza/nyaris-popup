@@ -25,29 +25,29 @@
     </Transition>
 
     <!-- Top Bar -->
-    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30">
-      <div class="max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <ShoppingCart class="w-6 h-6 text-emerald-400" />
-          <h1 class="text-lg font-bold tracking-tight text-slate-100">PopUpPOS</h1>
+    <header class="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2.5 sm:py-3 sticky top-0 z-30">
+      <div class="max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <ShoppingCart class="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400 shrink-0" />
+          <h1 class="text-sm sm:text-lg font-bold tracking-tight text-slate-100 whitespace-nowrap">PopUpPOS</h1>
         </div>
         <!-- Event Selector & Admin Nav -->
-        <div class="flex items-center gap-2 flex-1 justify-end">
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-1 justify-end min-w-0">
           <CalendarDays class="w-4 h-4 text-slate-400 flex-shrink-0" />
           <select
             v-model="selectedEventId"
             @change="onEventChange"
-            class="bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-[140px] sm:max-w-[180px] truncate"
+            class="bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-xl px-2 sm:px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-0 max-w-[125px] xs:max-w-[150px] sm:max-w-[180px] truncate"
             :disabled="loadingEvents || events.length === 0"
           >
             <option value="">{{ events.length === 0 ? '— Belum Ada Event Aktif —' : '— Pilih Event —' }}</option>
             <option v-for="ev in events" :key="ev.id" :value="ev.id">{{ ev.name }}</option>
           </select>
-          <span v-if="loadingEvents" class="text-slate-500 text-xs">loading…</span>
+          <span v-if="loadingEvents" class="hidden xs:inline text-slate-500 text-xs">loading…</span>
 
           <router-link
             to="/admin"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0"
             title="Ke Dashboard Admin"
           >
             <ShieldCheck class="w-3.5 h-3.5 text-emerald-400" />
@@ -56,7 +56,7 @@
 
           <button
             @click="handleLogout"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer"
             title="Keluar dari akun staf"
           >
             <LogOut class="w-3.5 h-3.5" />
@@ -66,7 +66,7 @@
     </header>
 
     <!-- Main Content -->
-    <main :class="selectedEventId ? 'max-w-6xl' : 'max-w-2xl'" class="flex-1 mx-auto w-full px-4 py-4 flex flex-col gap-4 pb-32">
+    <main :class="selectedEventId ? 'max-w-6xl' : 'max-w-2xl'" class="flex-1 mx-auto w-full px-4 py-4 flex flex-col gap-4 pb-36 sm:pb-28 lg:pb-12">
 
       <!-- No Event Selected -->
       <div v-if="!selectedEventId" class="flex flex-col items-center justify-center py-20 text-slate-500 gap-4 text-center px-4">
@@ -370,7 +370,7 @@
     </main>
 
     <!-- Recent Transactions Drawer Toggle -->
-    <div class="fixed bottom-0 left-0 right-0 z-40">
+    <div class="fixed bottom-0 left-0 right-0 z-40" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
       <div class="max-w-2xl lg:max-w-4xl mx-auto">
         <!-- Toggle Button -->
         <button

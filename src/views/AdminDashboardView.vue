@@ -1786,48 +1786,51 @@ async function copyTenantWaSummary(row) {
     <!-- ── Top Navigation Bar ───────────────────────────────────────────── -->
     <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-lg shadow-black/20">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <ShieldCheck class="w-7 h-7 text-emerald-400" />
-          <span class="text-xl font-bold tracking-tight text-white">PopUpPOS <span class="text-emerald-400">Admin</span></span>
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <ShieldCheck class="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400 shrink-0" />
+          <span class="text-sm sm:text-xl font-bold tracking-tight text-white whitespace-nowrap">PopUpPOS <span class="text-emerald-400">Admin</span></span>
         </div>
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <button
             @click="lockAdmin"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 border border-slate-700 hover:border-amber-500/30 px-3 py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 border border-slate-700 hover:border-amber-500/30 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer shrink-0"
             title="Kunci sesi Admin"
+            aria-label="Kunci sesi Admin"
           >
             <Lock class="w-3.5 h-3.5" />
-            <span>Kunci</span>
+            <span class="hidden sm:inline">Kunci</span>
           </button>
           <button
             @click="handleLogout"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-3 py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer shrink-0"
             title="Keluar dari akun staf"
+            aria-label="Keluar dari akun staf"
           >
             <LogOut class="w-3.5 h-3.5" />
-            <span>Keluar</span>
+            <span class="hidden sm:inline">Keluar</span>
           </button>
           <button
             @click="router.push('/')"
-            class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+            class="flex items-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer shrink-0"
           >
             <ShoppingCart class="w-4 h-4" />
-            Cashier View
+            <span class="sm:hidden">Kasir</span>
+            <span class="hidden sm:inline">Cashier View</span>
           </button>
         </div>
       </div>
 
       <!-- ── 3-Tab Workspace Bar ───────────────────────────────────────── -->
       <div class="border-t border-slate-800/80 bg-slate-900/90 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 overflow-x-auto py-2">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2">
           <button
             @click="activeTab = 'overview'"
             :class="activeTab === 'overview'
               ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
-            class="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm border transition-all cursor-pointer whitespace-nowrap"
+            class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm border transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
-            <TrendingUp class="w-4 h-4" />
+            <TrendingUp class="w-4 h-4 shrink-0" />
             <span>Overview & Settlement</span>
           </button>
 
@@ -1836,11 +1839,11 @@ async function copyTenantWaSummary(row) {
             :class="activeTab === 'lineup'
               ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
-            class="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm border transition-all cursor-pointer whitespace-nowrap"
+            class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm border transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
-            <CalendarCheck class="w-4 h-4" />
+            <CalendarCheck class="w-4 h-4 shrink-0" />
             <span>Event & Lineup</span>
-            <span v-if="selectedEvent" class="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal">
+            <span v-if="selectedEvent" class="ml-1 text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal">
               {{ tenants.length }}
             </span>
           </button>
@@ -1850,11 +1853,11 @@ async function copyTenantWaSummary(row) {
             :class="activeTab === 'master'
               ? 'bg-sky-500/15 text-sky-400 border-sky-500/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
-            class="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm border transition-all cursor-pointer whitespace-nowrap"
+            class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm border transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Store class="w-4 h-4" />
+            <Store class="w-4 h-4 shrink-0" />
             <span>Master Tenant</span>
-            <span class="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal">
+            <span class="ml-1 text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal">
               {{ masterTenants.length }}
             </span>
           </button>
@@ -1862,7 +1865,7 @@ async function copyTenantWaSummary(row) {
       </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-24 sm:pb-12">
 
       <!-- ════════════════════════════════════════════════════════════════
            TAB 1: OVERVIEW & SETTLEMENT
@@ -1937,9 +1940,9 @@ async function copyTenantWaSummary(row) {
         <template v-else>
           <!-- Live Revenue Summary Cards (Cards 1-5) -->
           <section class="space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                <TrendingUp class="w-5 h-5 text-sky-400" />
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
+                <TrendingUp class="w-5 h-5 text-sky-400 shrink-0" />
                 Live Revenue Summary
                 <span class="text-xs font-normal text-slate-500">— Realtime calculations</span>
               </h2>
@@ -1949,51 +1952,51 @@ async function copyTenantWaSummary(row) {
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
               <!-- Card 1: Total Gross Revenue -->
-              <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2">
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Gross Revenue</p>
-                <p class="text-2xl font-bold text-white">{{ formatRupiah(totalGross) }}</p>
-                <p class="text-xs text-slate-500">Semua transaksi non-voided</p>
+              <div class="col-span-2 sm:col-span-1 bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
+                <p class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Gross Revenue</p>
+                <p class="text-xl sm:text-2xl font-bold text-white">{{ formatRupiah(totalGross) }}</p>
+                <p class="text-[11px] sm:text-xs text-slate-500">Semua transaksi non-voided</p>
               </div>
 
               <!-- Card 2: Venue Cut -->
-              <div class="bg-slate-900 border border-violet-500/20 rounded-2xl p-5 space-y-2">
-                <p class="text-xs font-semibold text-violet-400 uppercase tracking-wider">Venue Cut</p>
-                <p class="text-2xl font-bold text-violet-400">{{ formatRupiah(totalVenueCut) }}</p>
-                <p class="text-xs text-slate-500">Lokasi / venue share</p>
+              <div class="bg-slate-900 border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
+                <p class="text-[11px] sm:text-xs font-semibold text-violet-400 uppercase tracking-wider">Venue Cut</p>
+                <p class="text-lg sm:text-2xl font-bold text-violet-400">{{ formatRupiah(totalVenueCut) }}</p>
+                <p class="text-[11px] sm:text-xs text-slate-500">Lokasi / venue share</p>
               </div>
 
               <!-- Card 3: Organizer Cut -->
-              <div class="bg-slate-900 border border-amber-500/20 rounded-2xl p-5 space-y-2">
-                <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider">Organizer Cut</p>
-                <p class="text-2xl font-bold text-amber-400">{{ formatRupiah(totalOrganizerCut) }}</p>
-                <p class="text-xs text-slate-500">Penyelenggara / EO share</p>
+              <div class="bg-slate-900 border border-amber-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
+                <p class="text-[11px] sm:text-xs font-semibold text-amber-400 uppercase tracking-wider">Organizer Cut</p>
+                <p class="text-lg sm:text-2xl font-bold text-amber-400">{{ formatRupiah(totalOrganizerCut) }}</p>
+                <p class="text-[11px] sm:text-xs text-slate-500">Penyelenggara / EO share</p>
               </div>
 
               <!-- Card 4: Tenant Net Payout -->
-              <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-5 space-y-2">
-                <p class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Tenant Net Payout</p>
-                <p class="text-2xl font-bold text-emerald-400">{{ formatRupiah(totalTenantNet) }}</p>
-                <p class="text-xs text-slate-500">Hak bersih semua tenant</p>
+              <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
+                <p class="text-[11px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wider">Tenant Net Payout</p>
+                <p class="text-lg sm:text-2xl font-bold text-emerald-400">{{ formatRupiah(totalTenantNet) }}</p>
+                <p class="text-[11px] sm:text-xs text-slate-500">Hak bersih semua tenant</p>
               </div>
 
               <!-- Card 5: Payment Breakdown -->
-              <div class="bg-slate-900 border border-sky-500/20 rounded-2xl p-5 space-y-3 sm:col-span-2 lg:col-span-1 xl:col-span-1">
-                <p class="text-xs font-semibold text-sky-400 uppercase tracking-wider">Payment Breakdown</p>
+              <div class="bg-slate-900 border border-sky-500/20 rounded-2xl p-3.5 sm:p-5 space-y-2 sm:space-y-3 col-span-2 sm:col-span-2 lg:col-span-1">
+                <p class="text-[11px] sm:text-xs font-semibold text-sky-400 uppercase tracking-wider">Payment Breakdown</p>
                 <div class="flex justify-between items-center">
                   <div class="space-y-0.5">
-                    <p class="text-xs text-slate-500 flex items-center gap-1">
+                    <p class="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1">
                       <CreditCard class="w-3.5 h-3.5 text-sky-400" /> QRIS
                     </p>
-                    <p class="text-lg font-bold text-sky-400">{{ formatRupiah(totalQris) }}</p>
+                    <p class="text-sm sm:text-lg font-bold text-sky-400">{{ formatRupiah(totalQris) }}</p>
                   </div>
-                  <div class="w-px h-10 bg-slate-700" />
+                  <div class="w-px h-8 sm:h-10 bg-slate-700" />
                   <div class="space-y-0.5 text-right">
-                    <p class="text-xs text-slate-500 flex items-center gap-1 justify-end">
+                    <p class="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 justify-end">
                       <Banknote class="w-3.5 h-3.5 text-slate-300" /> CASH
                     </p>
-                    <p class="text-lg font-bold text-slate-200">{{ formatRupiah(totalCash) }}</p>
+                    <p class="text-sm sm:text-lg font-bold text-slate-200">{{ formatRupiah(totalCash) }}</p>
                   </div>
                 </div>
               </div>
@@ -2001,10 +2004,10 @@ async function copyTenantWaSummary(row) {
           </section>
 
           <!-- End-of-Day Payment Reconciliation Card -->
-          <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div class="flex items-center justify-between flex-wrap gap-2">
+          <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-emerald-400">
+                <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-emerald-400 shrink-0">
                   <Banknote class="w-4 h-4" />
                 </div>
                 <div>
@@ -2016,7 +2019,7 @@ async function copyTenantWaSummary(row) {
                   </p>
                 </div>
               </div>
-              <div class="flex items-center gap-2 text-xs font-mono">
+              <div class="flex items-center gap-2 text-xs font-mono self-start sm:self-auto">
                 <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
                   Total Transaksi: <strong class="text-white">{{ paymentBreakdown.qrisCount + paymentBreakdown.cashCount }}</strong>
                 </span>
@@ -2120,10 +2123,10 @@ async function copyTenantWaSummary(row) {
           </section>
 
           <!-- Settlement Table -->
-          <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-            <div class="flex items-center justify-between flex-wrap gap-3">
+          <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                   <Download class="w-5 h-5 text-emerald-400" />
                   Settlement & Payout Table
                 </h2>
@@ -2131,7 +2134,7 @@ async function copyTenantWaSummary(row) {
               </div>
               <button
                 @click="exportAllPdf"
-                class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-4 py-2 rounded-xl font-semibold text-sm transition-colors border border-slate-700 hover:border-emerald-500/40 cursor-pointer shadow-sm"
+                class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-4 py-2 rounded-xl font-semibold text-sm transition-colors border border-slate-700 hover:border-emerald-500/40 cursor-pointer shadow-sm self-start sm:self-auto"
                 title="Unduh laporan lengkap settlement & bagi hasil event dalam format PDF"
               >
                 <FileText class="w-4 h-4 text-emerald-400" />
@@ -2186,7 +2189,7 @@ async function copyTenantWaSummary(row) {
                       </button>
                     </td>
                     <td class="px-4 py-3 text-center">
-                      <div class="flex items-center justify-center gap-1.5">
+                      <div class="flex items-center justify-center gap-1.5 whitespace-nowrap">
                         <button
                           @click="exportTenantPdf(row)"
                           class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500/40 transition-colors cursor-pointer"
@@ -2234,15 +2237,15 @@ async function copyTenantWaSummary(row) {
       <div v-else-if="activeTab === 'lineup'" class="space-y-8">
 
         <!-- ── Section 1: Event Management ──────────────────────────────── -->
-      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
             <TrendingUp class="w-5 h-5 text-sky-400" />
             Event Management
           </h2>
           <button
             @click="showCreateEventForm = !showCreateEventForm"
-            class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl font-semibold text-sm transition-colors"
+            class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl font-semibold text-sm transition-colors self-start sm:self-auto cursor-pointer"
           >
             <Plus class="w-4 h-4" />
             Create New Event
@@ -2569,17 +2572,17 @@ async function copyTenantWaSummary(row) {
       <template v-if="selectedEventId">
 
         <!-- ── Section 2: Tenant Management ───────────────────────────── -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-          <div class="flex items-center justify-between flex-wrap gap-3">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <Wallet class="w-5 h-5 text-amber-400" />
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
+              <Wallet class="w-5 h-5 text-amber-400 shrink-0" />
               Tenant Management
-              <span class="text-sm font-normal text-slate-500">— {{ selectedEvent?.name }}</span>
+              <span class="text-xs sm:text-sm font-normal text-slate-500">— {{ selectedEvent?.name }}</span>
             </h2>
-            <div class="flex items-center gap-2.5 flex-wrap">
+            <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
               <button
                 @click="openAssignLineupModal"
-                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer shadow-sm shadow-emerald-950/40"
+                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 sm:px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer shadow-sm shadow-emerald-950/40"
                 title="Pilih brand dari Master Directory untuk dimasukkan ke event ini"
               >
                 <Plus class="w-4 h-4" />
@@ -2587,7 +2590,7 @@ async function copyTenantWaSummary(row) {
               </button>
               <button
                 @click="showAddTenantForm = !showAddTenantForm"
-                class="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer shadow-sm shadow-amber-950/40"
+                class="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 sm:px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer shadow-sm shadow-amber-950/40"
               >
                 <Plus class="w-4 h-4" />
                 <span>Tenant Baru</span>
@@ -2782,7 +2785,7 @@ async function copyTenantWaSummary(row) {
                     </span>
                   </td>
                   <td class="px-4 py-3">
-                    <div class="flex items-center gap-1.5 flex-wrap">
+                    <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap whitespace-nowrap">
                       <button
                         @click="openEditTenant(tenant)"
                         class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
@@ -2864,10 +2867,10 @@ async function copyTenantWaSummary(row) {
       ═════════════════════════════════════════════════════════════════ -->
       <div v-else-if="activeTab === 'master'" class="space-y-6">
         <!-- Directory Header -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-              <Store class="w-6 h-6 text-sky-400" />
+            <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <Store class="w-5 h-5 sm:w-6 sm:h-6 text-sky-400 shrink-0" />
               Master Tenant Directory
             </h2>
             <p class="text-xs sm:text-sm text-slate-400 mt-1">
@@ -2876,7 +2879,7 @@ async function copyTenantWaSummary(row) {
           </div>
           <button
             @click="openAddMasterModal"
-            class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer"
+            class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer self-start sm:self-auto shrink-0"
           >
             <Plus class="w-4 h-4" />
             Tambah Master Brand
@@ -3040,7 +3043,7 @@ async function copyTenantWaSummary(row) {
                     </span>
                   </td>
                   <td class="px-4 py-3 text-center">
-                    <div class="flex items-center justify-center gap-2">
+                    <div class="flex items-center justify-center gap-2 whitespace-nowrap">
                       <button
                         @click="openAssignSingleMasterModal(m)"
                         :disabled="events.length === 0"
