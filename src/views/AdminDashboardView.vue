@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ShieldCheck,
@@ -133,8 +133,24 @@ function handleKeydown(e) {
 
 const activeTab = ref('overview') // 'overview' | 'lineup' | 'master'
 
-watch(activeTab, () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+function switchAdminTab(tabKey, event) {
+  activeTab.value = tabKey
+  if (event?.currentTarget) {
+    event.currentTarget.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest'
+    })
+  }
+}
+
+watch(activeTab, async () => {
+  await nextTick()
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  })
 })
 
 const events = ref([])
@@ -1829,7 +1845,7 @@ async function copyTenantWaSummary(row) {
       <div class="border-t border-slate-800/80 bg-slate-900/90 backdrop-blur-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2 touch-pan-x overscroll-x-contain">
           <button
-            @click="activeTab = 'overview'"
+            @click="switchAdminTab('overview', $event)"
             :class="activeTab === 'overview'
               ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
@@ -1840,7 +1856,7 @@ async function copyTenantWaSummary(row) {
           </button>
 
           <button
-            @click="activeTab = 'lineup'"
+            @click="switchAdminTab('lineup', $event)"
             :class="activeTab === 'lineup'
               ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
@@ -1854,7 +1870,7 @@ async function copyTenantWaSummary(row) {
           </button>
 
           <button
-            @click="activeTab = 'master'"
+            @click="switchAdminTab('master', $event)"
             :class="activeTab === 'master'
               ? 'bg-sky-500/15 text-sky-400 border-sky-500/40 shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
@@ -1915,7 +1931,7 @@ async function copyTenantWaSummary(row) {
               {{ selectedEvent.event_dates }}
             </span>
             <button
-              @click="activeTab = 'lineup'; openEditEvent()"
+              @click="switchAdminTab('lineup', $event); openEditEvent()"
               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition-colors cursor-pointer"
               title="Edit event settings & share %"
             >
@@ -1933,7 +1949,7 @@ async function copyTenantWaSummary(row) {
             <p class="text-slate-500 text-sm mt-1">Silakan pilih event aktif di dropdown atas, atau buka tab Event & Lineup untuk membuat event baru.</p>
           </div>
           <button
-            @click="activeTab = 'lineup'"
+            @click="switchAdminTab('lineup', $event)"
             class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer"
           >
             <CalendarCheck class="w-4 h-4" />
