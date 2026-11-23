@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   ShieldCheck,
   ShoppingCart,
@@ -37,12 +37,15 @@ import {
 } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase.js'
 import { useAuth } from '@/lib/useAuth.js'
+import { useEvents } from '@/lib/useEvents.js'
 import { formatRupiah } from '@/lib/currency.js'
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import { generateEventSettlementPdf, generateTenantSettlementPdf } from '@/lib/exportSettlementPdf.js'
 
 const router = useRouter()
+const route = useRoute()
 const { signOut } = useAuth()
+const { selectedEventId: globalEventId, selectEventId: setGlobalEventId } = useEvents()
 
 async function handleLogout() {
   lockAdmin()
@@ -88,7 +91,8 @@ async function verifyPin() {
     await Promise.all([fetchEvents(), fetchMasterTenants()])
     subscribeMasterRealtime()
     if (events.value.length && !selectedEventId.value) {
-      selectedEventId.value = events.value[0].id
+      const match = globalEventId.value && events.value.find((e) => e.id === globalEventId.value)
+      selectedEventId.value = match ? match.id : events.value[0].id
     }
   } else {
     pinError.value = 'PIN salah, coba lagi'
@@ -131,10 +135,26 @@ function handleKeydown(e) {
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-const activeTab = ref('overview') // 'overview' | 'lineup' | 'master'
+const activeTab = ref(
+  (route.query.tab && ['overview', 'lineup', 'master'].includes(String(route.query.tab).toLowerCase()))
+    ? String(route.query.tab).toLowerCase()
+    : 'overview'
+) // 'overview' | 'lineup' | 'master'
+
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab && ['overview', 'lineup', 'master'].includes(String(newTab).toLowerCase())) {
+      activeTab.value = String(newTab).toLowerCase()
+    }
+  }
+)
 
 function switchAdminTab(tabKey, event) {
   activeTab.value = tabKey
+  if (route.query.tab !== tabKey) {
+    router.replace({ query: { ...route.query, tab: tabKey } })
+  }
   if (event?.currentTarget) {
     event.currentTarget.scrollIntoView({
       behavior: 'smooth',
@@ -155,6 +175,12 @@ watch(activeTab, async () => {
 
 const events = ref([])
 const selectedEventId = ref(null)
+
+watch(globalEventId, (newId) => {
+  if (newId && newId !== selectedEventId.value && events.value.some((e) => e.id === newId)) {
+    selectedEventId.value = newId
+  }
+})
 const tenants = ref([])
 const transactionItems = ref([]) // items with joined transaction info
 const transactions = ref([]) // transactions for active event
@@ -429,6 +455,9 @@ function subscribeRealtime(eventId) {
 // ─── Watch selected event ─────────────────────────────────────────────────────
 
 watch(selectedEventId, (id) => {
+  if (id && id !== globalEventId.value) {
+    setGlobalEventId(id)
+  }
   fetchTenants(id)
   fetchTransactionItems(id)
   subscribeRealtime(id)
@@ -450,7 +479,8 @@ onMounted(async () => {
     await Promise.all([fetchEvents(), fetchMasterTenants()])
     subscribeMasterRealtime()
     if (events.value.length) {
-      selectedEventId.value = events.value[0].id
+      const match = globalEventId.value && events.value.find((e) => e.id === globalEventId.value)
+      selectedEventId.value = match ? match.id : events.value[0].id
     }
   }
   window.addEventListener('keydown', handleKeydown)
@@ -1891,347 +1921,361 @@ async function copyTenantWaSummary(row) {
       <!-- ════════════════════════════════════════════════════════════════
            TAB 1: OVERVIEW & SETTLEMENT
       ═════════════════════════════════════════════════════════════════ -->
-      <div v-if="activeTab === 'overview'" class="space-y-8">
-        <!-- Compact Event Selector Bar -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
-          <div class="flex items-center gap-3 flex-wrap flex-1 min-w-[280px]">
-            <div class="flex items-center gap-2">
-              <Building2 class="w-5 h-5 text-emerald-400" />
-              <label class="text-sm font-semibold text-slate-300">Active Event:</label>
-            </div>
-            <div class="relative flex-1 max-w-md min-w-[220px]">
+      <div v-if="activeTab === 'overview'" class="flex flex-col gap-gutter-xl">
+        <!-- ── Page Header & Controls ─────────────────────────────────── -->
+        <header class="flex flex-wrap items-start justify-between gap-gutter-lg">
+          <div class="min-w-0">
+            <h1 class="font-headline text-headline-lg text-light-on-surface">Ringkasan &amp; Tutup Buku</h1>
+            <p class="font-body text-body-md text-light-on-surface-variant mt-gutter-xs">Pantau omzet real-time dan bagikan laporan hasil penjualan ke setiap booth.</p>
+          </div>
+
+          <!-- Right-Aligned Action Bar -->
+          <div class="flex flex-wrap items-center gap-gutter-sm shrink-0">
+            <!-- Active Event Switcher Pill -->
+            <div class="relative inline-flex items-center">
+              <span class="material-symbols-outlined text-[18px] text-light-primary absolute left-3 pointer-events-none" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">festival</span>
               <select
                 v-model="selectedEventId"
-                class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-9 cursor-pointer"
+                class="appearance-none pl-9 pr-8 py-2 rounded-md bg-light-secondary-container text-light-on-secondary-container border border-light-primary font-label text-label-md hover:bg-light-surface-variant transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-light-primary"
               >
-                <option value="" disabled>-- Select an event --</option>
+                <option value="" disabled>-- Pilih Event --</option>
                 <option v-for="ev in events" :key="ev.id" :value="ev.id">
-                  {{ ev.name }} {{ ev.event_dates ? `(${ev.event_dates})` : '' }}
+                  {{ ev.name }} • {{ (ev.status === 'COMPLETED' || ev.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}
                 </option>
               </select>
-              <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <span class="material-symbols-outlined text-[18px] text-light-on-secondary-container absolute right-2.5 pointer-events-none" aria-hidden="true">expand_more</span>
             </div>
-            <Loader2 v-if="loadingEvents" class="w-5 h-5 text-slate-400 animate-spin" />
-          </div>
 
-          <div v-if="selectedEvent" class="flex items-center gap-2 text-xs flex-wrap">
-            <span
-              :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
-                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'"
-              class="px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1.5"
-            >
-              <span class="w-1.5 h-1.5 rounded-full" :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'bg-amber-400' : 'bg-emerald-400'"></span>
-              {{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}
-            </span>
-            <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
-              Venue: <strong class="text-white">{{ selectedEvent.venue || '—' }}</strong>
-            </span>
-            <span v-if="selectedEvent.event_dates" class="px-2.5 py-1 rounded-lg bg-slate-800 text-emerald-400 border border-emerald-500/20">
-              {{ selectedEvent.event_dates }}
-            </span>
             <button
+              v-if="selectedEvent"
               @click="switchAdminTab('lineup', $event); openEditEvent()"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition-colors cursor-pointer"
+              type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-light-surface-container-low border border-light-outline-variant text-light-on-surface-variant hover:bg-light-surface-container font-label text-label-md transition-colors cursor-pointer shrink-0"
               title="Edit event settings & share %"
             >
-              <Pencil class="w-3.5 h-3.5" />
+              <Pencil class="w-3.5 h-3.5 text-light-primary" />
               <span>Edit Event</span>
             </button>
-          </div>
-        </section>
 
-        <!-- If no event is selected -->
-        <div v-if="!selectedEventId" class="bg-slate-900 border border-slate-800 rounded-2xl p-16 text-center space-y-4">
-          <CalendarCheck class="w-12 h-12 text-slate-700 mx-auto" />
+            <!-- Export PDF Button -->
+            <button
+              v-if="selectedEventId"
+              @click="exportAllPdf"
+              type="button"
+              class="inline-flex items-center gap-gutter-xs px-gutter-md py-2 rounded-md bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface hover:bg-light-surface-container-low transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[18px] text-light-primary" aria-hidden="true">picture_as_pdf</span>
+              <span class="font-label text-label-md">Export PDF</span>
+            </button>
+
+            <!-- Salin Rekap WA Button (Event-wide) -->
+            <button
+              v-if="selectedEventId"
+              type="button"
+              @click="() => {
+                if (!selectedEvent) return;
+                const lines = [
+                  `*Rekap Hasil Penjualan - ${selectedEvent.name}*`,
+                  selectedEvent.event_dates ? `Tanggal: ${selectedEvent.event_dates}` : '',
+                  selectedEvent.venue ? `Venue: ${selectedEvent.venue}` : '',
+                  ``,
+                  `• Total Omzet Kotor: *${formatRupiah(totalGross)}* (${validTransactions.length} transaksi)`,
+                  `• Hak Bersih Tenant: *${formatRupiah(totalTenantNet)}*`,
+                  `• Bagian Venue: *${formatRupiah(totalVenueCut)}*`,
+                  `• Bagian Organizer: *${formatRupiah(totalOrganizerCut)}*`,
+                  ``,
+                  `*Rekonsiliasi Pembayaran:*`,
+                  `• QRIS Settlement: *${formatRupiah(paymentBreakdown.qrisTotal)}* (${paymentBreakdown.qrisCount} trx - ${paymentBreakdown.qrisPct}%)`,
+                  `• Net Fisik Tunai: *${formatRupiah(paymentBreakdown.cashTotal)}* (${paymentBreakdown.cashCount} trx - ${paymentBreakdown.cashPct}%)`,
+                  ``,
+                  `*PopUpPOS System*`
+                ].filter(Boolean).join('\n');
+                navigator.clipboard.writeText(lines).then(() => {
+                  showToast('success', 'Rekap event disalin untuk WhatsApp!');
+                }).catch(err => {
+                  showToast('error', 'Gagal menyalin: ' + err.message);
+                });
+              }"
+              class="inline-flex items-center gap-gutter-xs px-gutter-md py-2 rounded-md bg-light-primary text-light-on-primary hover:bg-light-primary-container transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chat</span>
+              <span class="font-label text-label-md">Salin Rekap WA</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Event Metadata Details Strip (when event selected) -->
+        <div v-if="selectedEvent" class="flex flex-wrap items-center gap-2 text-xs">
+          <span
+            :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
+              ? 'bg-light-tertiary-container text-light-on-tertiary-container border-light-tertiary'
+              : 'bg-light-secondary-container text-light-primary border-light-primary'"
+            class="px-2.5 py-1 rounded-md border font-label text-label-sm font-bold flex items-center gap-1.5"
+          >
+            <span class="w-1.5 h-1.5 rounded-full" :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'bg-light-tertiary' : 'bg-light-primary'"></span>
+            {{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}
+          </span>
+          <span class="px-2.5 py-1 rounded-md bg-light-surface-container-low text-light-on-surface-variant border border-light-outline-variant font-label text-label-sm">
+            Venue: <strong class="text-light-on-surface">{{ selectedEvent.venue || '—' }}</strong>
+          </span>
+          <span v-if="selectedEvent.event_dates" class="px-2.5 py-1 rounded-md bg-light-surface-container-low text-light-primary border border-light-outline-variant font-label text-label-sm">
+            {{ selectedEvent.event_dates }}
+          </span>
+          <span v-if="loadingItems" class="flex items-center gap-1.5 text-xs text-light-on-surface-variant">
+            <Loader2 class="w-3.5 h-3.5 animate-spin text-light-primary" />
+            Memperbarui data realtime…
+          </span>
+        </div>
+
+        <!-- ── If no event is selected ─────────────────────────────────── -->
+        <div v-if="!selectedEventId" class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant p-12 sm:p-16 text-center space-y-4">
+          <CalendarCheck class="w-12 h-12 text-light-on-surface-variant mx-auto" />
           <div>
-            <p class="text-slate-300 text-lg font-semibold">Pilih Event Terlebih Dahulu</p>
-            <p class="text-slate-500 text-sm mt-1">Silakan pilih event aktif di dropdown atas, atau buka tab Event & Lineup untuk membuat event baru.</p>
+            <p class="font-headline text-headline-md font-bold text-light-on-surface">Pilih Event Terlebih Dahulu</p>
+            <p class="font-body text-body-sm text-light-on-surface-variant mt-1">Silakan pilih event aktif di dropdown atas, atau buka tab Event &amp; Lineup untuk membuat event baru.</p>
           </div>
           <button
             @click="switchAdminTab('lineup', $event)"
-            class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer"
+            type="button"
+            class="inline-flex items-center gap-2 bg-light-primary text-light-on-primary px-5 py-2.5 rounded-md font-label text-label-md font-bold transition-colors hover:bg-light-primary-container cursor-pointer"
           >
             <CalendarCheck class="w-4 h-4" />
-            Kelola Event & Lineup
+            Kelola Event &amp; Lineup
           </button>
         </div>
 
-        <!-- If event is selected -->
+        <!-- ── If event is selected ────────────────────────────────────── -->
         <template v-else>
-          <!-- Live Revenue Summary Cards (Cards 1-5) -->
-          <section class="space-y-4">
-            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
-                <TrendingUp class="w-5 h-5 text-sky-400 shrink-0" />
-                Live Revenue Summary
-                <span class="text-xs font-normal text-slate-500">— Realtime calculations</span>
-              </h2>
-              <div v-if="loadingItems" class="flex items-center gap-2 text-sm text-slate-400">
-                <Loader2 class="w-4 h-4 animate-spin" />
-                Updating…
+          <!-- ── Top KPI Summary Row (4 Cards) ─────────────────────────── -->
+          <section aria-label="Ringkasan KPI Keuangan" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-gutter-md items-stretch">
+            <!-- KPI 1: Primary Highlighted Card -->
+            <article class="h-full p-gutter-lg rounded-md bg-light-primary text-light-on-primary flex flex-col justify-between gap-gutter-sm shadow-sm">
+              <div class="flex items-center justify-between gap-gutter-xs">
+                <span class="font-label text-label-md text-light-on-primary">Total Omzet Kotor</span>
+                <span class="material-symbols-outlined text-[20px] text-light-on-primary shrink-0" aria-hidden="true">payments</span>
               </div>
-            </div>
+              <div>
+                <p class="font-headline text-headline-lg font-bold text-light-on-primary font-mono tabular-nums">{{ formatRupiah(totalGross) }}</p>
+                <p class="font-label text-label-sm text-light-on-primary mt-gutter-xs tabular-nums">{{ validTransactions.length }} transaksi non-voided</p>
+              </div>
+            </article>
 
-            <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
-              <!-- Card 1: Total Gross Revenue -->
-              <div class="col-span-2 sm:col-span-1 bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
-                <p class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Gross Revenue</p>
-                <p class="text-xl sm:text-2xl font-bold text-white">{{ formatRupiah(totalGross) }}</p>
-                <p class="text-[11px] sm:text-xs text-slate-500">Semua transaksi non-voided</p>
+            <!-- KPI 2: Hak Bersih Tenant -->
+            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant flex flex-col justify-between gap-gutter-sm">
+              <div class="flex items-center justify-between gap-gutter-xs">
+                <span class="font-label text-label-md text-light-on-surface-variant">Hak Bersih Tenant</span>
+                <span class="material-symbols-outlined text-[20px] text-light-primary shrink-0" aria-hidden="true">storefront</span>
               </div>
-
-              <!-- Card 2: Venue Cut -->
-              <div class="bg-slate-900 border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
-                <p class="text-[11px] sm:text-xs font-semibold text-violet-400 uppercase tracking-wider">Venue Cut</p>
-                <p class="text-lg sm:text-2xl font-bold text-violet-400">{{ formatRupiah(totalVenueCut) }}</p>
-                <p class="text-[11px] sm:text-xs text-slate-500">Lokasi / venue share</p>
-              </div>
-
-              <!-- Card 3: Organizer Cut -->
-              <div class="bg-slate-900 border border-amber-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
-                <p class="text-[11px] sm:text-xs font-semibold text-amber-400 uppercase tracking-wider">Organizer Cut</p>
-                <p class="text-lg sm:text-2xl font-bold text-amber-400">{{ formatRupiah(totalOrganizerCut) }}</p>
-                <p class="text-[11px] sm:text-xs text-slate-500">Penyelenggara / EO share</p>
-              </div>
-
-              <!-- Card 4: Tenant Net Payout -->
-              <div class="col-span-2 sm:col-span-1 bg-slate-900 border border-emerald-500/20 rounded-2xl p-3.5 sm:p-5 space-y-1 sm:space-y-2">
-                <p class="text-[11px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wider">Tenant Net Payout</p>
-                <p class="text-lg sm:text-2xl font-bold text-emerald-400">{{ formatRupiah(totalTenantNet) }}</p>
-                <p class="text-[11px] sm:text-xs text-slate-500">Hak bersih semua tenant</p>
-              </div>
-
-              <!-- Card 5: Payment Breakdown (Duplicate summary hidden on mobile since full Reconciliation card follows) -->
-              <div class="hidden sm:block bg-slate-900 border border-sky-500/20 rounded-2xl p-3.5 sm:p-5 space-y-2 sm:space-y-3 col-span-2 sm:col-span-2 lg:col-span-1">
-                <p class="text-[11px] sm:text-xs font-semibold text-sky-400 uppercase tracking-wider">Payment Breakdown</p>
-                <div class="flex justify-between items-center">
-                  <div class="space-y-0.5">
-                    <p class="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1">
-                      <CreditCard class="w-3.5 h-3.5 text-sky-400" /> QRIS
-                    </p>
-                    <p class="text-sm sm:text-lg font-bold text-sky-400">{{ formatRupiah(totalQris) }}</p>
-                  </div>
-                  <div class="w-px h-8 sm:h-10 bg-slate-700" />
-                  <div class="space-y-0.5 text-right">
-                    <p class="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 justify-end">
-                      <Banknote class="w-3.5 h-3.5 text-slate-300" /> CASH
-                    </p>
-                    <p class="text-sm sm:text-lg font-bold text-slate-200">{{ formatRupiah(totalCash) }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- End-of-Day Payment Reconciliation Card -->
-          <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-emerald-400 shrink-0">
-                  <Banknote class="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                    Rekonsiliasi Metode Pembayaran (End-of-Day)
-                  </h3>
-                  <p class="text-xs text-slate-400">
-                    Pemisahan setoran kas masuk QRIS vs fisik laci kasir (CASH)
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 text-xs font-mono self-start sm:self-auto">
-                <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
-                  Total Transaksi: <strong class="text-white">{{ paymentBreakdown.qrisCount + paymentBreakdown.cashCount }}</strong>
-                </span>
-              </div>
-            </div>
-
-            <!-- Two Columns: QRIS vs CASH -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- QRIS Column -->
-              <div class="bg-slate-950/60 border border-sky-500/30 rounded-xl p-4 flex flex-col justify-between gap-3">
-                <div class="flex items-start justify-between">
-                  <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
-                        <CreditCard class="w-3.5 h-3.5" />
-                        QRIS Settlement
-                      </span>
-                      <span class="text-xs text-slate-400 font-mono font-medium">
-                        {{ paymentBreakdown.qrisCount }} transaksi
-                      </span>
-                    </div>
-                    <p class="text-2xl font-black text-sky-400 tracking-tight pt-1">
-                      {{ formatRupiah(paymentBreakdown.qrisTotal) }}
-                    </p>
-                  </div>
-                  <span class="text-xs font-bold px-2 py-1 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 font-mono">
-                    {{ paymentBreakdown.qrisPct }}%
-                  </span>
-                </div>
-                <p class="text-[11px] text-slate-400">
-                  Langsung masuk ke rekening settlement QRIS penyelenggara
+              <div>
+                <p class="font-headline text-headline-lg font-bold text-light-on-surface font-mono tabular-nums">{{ formatRupiah(totalTenantNet) }}</p>
+                <p class="font-label text-label-sm text-light-primary mt-gutter-xs tabular-nums">
+                  {{ totalGross > 0 ? Math.round((totalTenantNet / totalGross) * 100) : 0 }}% rata-rata
                 </p>
               </div>
+            </article>
 
-              <!-- CASH (Laci Kasir) Column -->
-              <div class="bg-slate-950/60 border border-emerald-500/30 rounded-xl p-4 flex flex-col justify-between gap-3">
-                <div class="flex items-start justify-between">
-                  <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <Banknote class="w-3.5 h-3.5" />
-                        CASH (Laci Kasir)
-                      </span>
-                      <span class="text-xs text-slate-400 font-mono font-medium">
-                        {{ paymentBreakdown.cashCount }} transaksi
-                      </span>
-                    </div>
-                    <p class="text-2xl font-black text-emerald-400 tracking-tight pt-1">
-                      {{ formatRupiah(paymentBreakdown.cashTotal) }}
-                    </p>
-                  </div>
-                  <span class="text-xs font-bold px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-                    {{ paymentBreakdown.cashPct }}%
-                  </span>
+            <!-- KPI 3: Bagian Venue -->
+            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant flex flex-col justify-between gap-gutter-sm">
+              <div class="flex items-center justify-between gap-gutter-xs">
+                <span class="font-label text-label-md text-light-on-surface-variant">Bagian Venue</span>
+                <span class="material-symbols-outlined text-[20px] text-light-on-surface-variant shrink-0" aria-hidden="true">apartment</span>
+              </div>
+              <div>
+                <p class="font-headline text-headline-lg font-bold text-light-on-surface font-mono tabular-nums">{{ formatRupiah(totalVenueCut) }}</p>
+                <p class="font-label text-label-sm text-light-on-surface-variant mt-gutter-xs tabular-nums">
+                  {{ totalGross > 0 ? Math.round((totalVenueCut / totalGross) * 100) : 0 }}%
+                </p>
+              </div>
+            </article>
+
+            <!-- KPI 4: Bagian Organizer -->
+            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant flex flex-col justify-between gap-gutter-sm">
+              <div class="flex items-center justify-between gap-gutter-xs">
+                <span class="font-label text-label-md text-light-on-surface-variant">Bagian Organizer</span>
+                <span class="material-symbols-outlined text-[20px] text-light-on-surface-variant shrink-0" aria-hidden="true">groups</span>
+              </div>
+              <div>
+                <p class="font-headline text-headline-lg font-bold text-light-on-surface font-mono tabular-nums">{{ formatRupiah(totalOrganizerCut) }}</p>
+                <p class="font-label text-label-sm text-light-on-surface-variant mt-gutter-xs tabular-nums">
+                  {{ totalGross > 0 ? Math.round((totalOrganizerCut / totalGross) * 100) : 0 }}%
+                </p>
+              </div>
+            </article>
+          </section>
+
+          <!-- ── Visual Widget: Rekonsiliasi Metode Pembayaran (End-of-Day) ── -->
+          <section aria-label="Rekonsiliasi Metode Pembayaran End-of-Day" class="p-gutter-lg sm:p-gutter-xl rounded-lg bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-lg">
+            <!-- Widget Header -->
+            <div class="flex flex-wrap items-center justify-between gap-gutter-md">
+              <div class="flex items-center gap-gutter-md min-w-0">
+                <div class="w-10 h-10 rounded-md bg-light-secondary-container text-light-primary flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[22px]" aria-hidden="true">account_balance_wallet</span>
                 </div>
-
-                <!-- Cash Tendered & Change Breakdown Line -->
-                <div class="text-[11px] text-slate-400 font-mono flex items-center justify-between flex-wrap gap-1 border-t border-slate-800/80 pt-2">
-                  <span v-if="paymentBreakdown.cashChangeTotal > 0">
-                    Diterima: <span class="text-slate-200">{{ formatRupiah(paymentBreakdown.cashTenderedTotal) }}</span> • Kembalian: <span class="text-rose-400">-{{ formatRupiah(paymentBreakdown.cashChangeTotal) }}</span>
-                  </span>
-                  <span v-else>
-                    Fisik kas laci kasir wajib cocok dengan nominal di atas
-                  </span>
-                  <span class="text-emerald-400 font-semibold font-sans text-[10px]">Net Cash Fisik</span>
+                <div class="min-w-0">
+                  <h2 class="font-headline text-headline-md text-light-on-surface">Rekonsiliasi Metode Pembayaran (End-of-Day)</h2>
+                  <p class="font-body text-body-sm text-light-on-surface-variant">Pemisahan setoran kas masuk QRIS vs fisik laci kasir (CASH)</p>
                 </div>
               </div>
+
+              <span class="font-mono text-mono-sm px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface tabular-nums shrink-0">
+                Total Transaksi: {{ paymentBreakdown.qrisCount + paymentBreakdown.cashCount }}
+              </span>
             </div>
 
-            <!-- Visual Split Progress Bar -->
-            <div class="space-y-1.5">
-              <div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden flex">
-                <div
-                  v-if="paymentBreakdown.qrisPct > 0"
-                  :style="{ width: `${paymentBreakdown.qrisPct}%` }"
-                  class="h-full bg-sky-500 transition-all duration-300"
-                  :title="`QRIS: ${paymentBreakdown.qrisPct}%`"
-                />
-                <div
-                  v-if="paymentBreakdown.cashPct > 0"
-                  :style="{ width: `${paymentBreakdown.cashPct}%` }"
-                  class="h-full bg-emerald-500 transition-all duration-300"
-                  :title="`CASH: ${paymentBreakdown.cashPct}%`"
-                />
-                <div
-                  v-if="paymentBreakdown.qrisPct === 0 && paymentBreakdown.cashPct === 0"
-                  class="h-full w-full bg-slate-800"
-                />
+            <!-- Two Side-by-Side Detail Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-lg items-stretch">
+              <!-- Left Card: QRIS Settlement -->
+              <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-low border border-light-outline-variant flex flex-col justify-between gap-gutter-md">
+                <div class="flex items-center justify-between gap-gutter-sm">
+                  <div class="flex items-center gap-gutter-sm">
+                    <span class="font-label text-label-md px-gutter-sm py-gutter-xs rounded-sm bg-qris-container text-qris font-bold">QRIS Settlement</span>
+                    <span class="font-body text-body-sm text-light-on-surface-variant tabular-nums">{{ paymentBreakdown.qrisCount }} transaksi</span>
+                  </div>
+                  <span class="font-mono text-mono-sm px-gutter-sm py-gutter-xs rounded-full bg-qris text-light-on-primary tabular-nums font-bold">{{ paymentBreakdown.qrisPct }}%</span>
+                </div>
+
+                <p class="font-mono text-2xl sm:text-3xl lg:text-display-lg font-bold text-qris tabular-nums">{{ formatRupiah(paymentBreakdown.qrisTotal) }}</p>
+
+                <p class="font-body text-body-sm text-light-on-surface-variant pt-gutter-sm border-t border-light-outline-variant">Langsung masuk ke rekening settlement QRIS penyelenggara</p>
+              </article>
+
+              <!-- Right Card: CASH (Laci Kasir) -->
+              <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-low border border-light-outline-variant flex flex-col justify-between gap-gutter-md">
+                <div class="flex items-center justify-between gap-gutter-sm">
+                  <div class="flex items-center gap-gutter-sm">
+                    <span class="font-label text-label-md px-gutter-sm py-gutter-xs rounded-sm bg-light-secondary-container text-light-primary font-bold">CASH (Laci Kasir)</span>
+                    <span class="font-body text-body-sm text-light-on-surface-variant tabular-nums">{{ paymentBreakdown.cashCount }} transaksi</span>
+                  </div>
+                  <span class="font-mono text-mono-sm px-gutter-sm py-gutter-xs rounded-full bg-light-primary text-light-on-primary tabular-nums font-bold">{{ paymentBreakdown.cashPct }}%</span>
+                </div>
+
+                <p class="font-mono text-2xl sm:text-3xl lg:text-display-lg font-bold text-light-primary tabular-nums">{{ formatRupiah(paymentBreakdown.cashTotal) }}</p>
+
+                <div class="flex flex-wrap items-center justify-between gap-gutter-sm pt-gutter-sm border-t border-light-outline-variant">
+                  <span v-if="paymentBreakdown.cashChangeTotal > 0" class="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">
+                    Diterima: {{ formatRupiah(paymentBreakdown.cashTenderedTotal) }} • Kembalian: -{{ formatRupiah(paymentBreakdown.cashChangeTotal) }}
+                  </span>
+                  <span v-else class="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">
+                    Fisik kas laci kasir wajib cocok dengan nominal di atas
+                  </span>
+                  <span class="font-label text-label-sm text-light-primary font-bold shrink-0">Net Cash Fisik</span>
+                </div>
+              </article>
+            </div>
+
+            <!-- Bottom Visual Split Bar -->
+            <div class="flex flex-col gap-gutter-sm">
+              <div class="w-full h-3 rounded-full bg-light-surface-container overflow-hidden flex gap-0.5" role="img" :aria-label="`Rasio QRIS ${paymentBreakdown.qrisPct}% dan CASH ${paymentBreakdown.cashPct}%`">
+                <div :style="{ width: `${paymentBreakdown.qrisPct}%` }" class="h-full bg-qris transition-all duration-300"></div>
+                <div :style="{ width: `${paymentBreakdown.cashPct}%` }" class="h-full bg-light-primary transition-all duration-300"></div>
               </div>
-              <div class="flex justify-between text-[11px] font-mono text-slate-400 px-0.5">
-                <span class="flex items-center gap-1.5 text-sky-400">
-                  <span class="w-2 h-2 rounded-full bg-sky-500 inline-block"></span>
-                  QRIS: {{ paymentBreakdown.qrisPct }}% ({{ formatRupiah(paymentBreakdown.qrisTotal) }})
-                </span>
-                <span class="flex items-center gap-1.5 text-emerald-400">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                  CASH: {{ paymentBreakdown.cashPct }}% ({{ formatRupiah(paymentBreakdown.cashTotal) }})
-                </span>
+              <div class="flex flex-wrap items-center justify-between gap-gutter-sm">
+                <div class="flex items-center gap-gutter-xs">
+                  <span class="w-2.5 h-2.5 rounded-full bg-qris shrink-0" aria-hidden="true"></span>
+                  <span class="font-mono text-mono-sm text-light-on-surface tabular-nums">
+                    QRIS: {{ paymentBreakdown.qrisPct }}% ({{ formatRupiah(paymentBreakdown.qrisTotal) }})
+                  </span>
+                </div>
+                <div class="flex items-center gap-gutter-xs">
+                  <span class="w-2.5 h-2.5 rounded-full bg-light-primary shrink-0" aria-hidden="true"></span>
+                  <span class="font-mono text-mono-sm text-light-on-surface tabular-nums">
+                    CASH: {{ paymentBreakdown.cashPct }}% ({{ formatRupiah(paymentBreakdown.cashTotal) }})
+                  </span>
+                </div>
               </div>
             </div>
           </section>
 
-          <!-- Settlement Table -->
-          <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <!-- ── Main Section: Laporan Bagi Hasil per Tenant ───────────── -->
+          <section aria-label="Laporan Bagi Hasil per Tenant" class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant overflow-hidden">
+            <div class="p-gutter-lg border-b border-light-outline-variant flex flex-wrap items-center justify-between gap-gutter-md">
               <div>
-                <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <Download class="w-5 h-5 text-emerald-400" />
-                  Settlement & Payout Table
-                </h2>
-                <p class="text-xs text-slate-400 mt-0.5">Pantau bagi hasil per tenant dan tandai status pembayaran (Pending / Settled)</p>
+                <h2 class="font-headline text-headline-md text-light-on-surface">Laporan Bagi Hasil per Tenant</h2>
+                <p class="font-body text-body-sm text-light-on-surface-variant">Klik status transfer untuk menandai pelunasan, atau kirim rekap langsung ke WhatsApp tenant.</p>
               </div>
-              <button
-                @click="exportAllPdf"
-                class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-4 py-2 rounded-xl font-semibold text-sm transition-colors border border-slate-700 hover:border-emerald-500/40 cursor-pointer shadow-sm self-start sm:self-auto"
-                title="Unduh laporan lengkap settlement & bagi hasil event dalam format PDF"
-              >
-                <FileText class="w-4 h-4 text-emerald-400" />
-                <span>Export All PDF</span>
-              </button>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-mono-sm px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface-variant">
+                  {{ settlementRows.length }} Booth Aktif
+                </span>
+              </div>
             </div>
 
             <div v-if="loadingTenants || loadingItems" class="flex justify-center py-10">
-              <Loader2 class="w-7 h-7 text-slate-400 animate-spin" />
+              <Loader2 class="w-7 h-7 text-light-primary animate-spin" />
             </div>
-            <div v-else-if="settlementRows.length === 0" class="text-center py-10 text-slate-500 text-sm">
-              Belum ada tenant di event ini. Masukkan tenant di tab Event & Lineup.
+            <div v-else-if="settlementRows.length === 0" class="text-center py-10 text-light-on-surface-variant text-sm font-body">
+              Belum ada tenant di event ini. Masukkan tenant di tab Event &amp; Lineup.
             </div>
-            <div v-else class="space-y-4">
-              <!-- Desktop / Tablet Table View (>= 768px) -->
-              <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
-                <table class="w-full text-sm">
+            <div v-else>
+              <!-- Desktop / Tablet Table View (>= 768px: hidden on mobile) -->
+              <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left border-collapse">
                   <thead>
-                    <tr class="bg-slate-800/90 text-slate-400 text-xs uppercase tracking-wider">
-                      <th class="px-4 py-3 text-left">Booth #</th>
-                      <th class="px-4 py-3 text-left">Tenant Name</th>
-                      <th class="px-4 py-3 text-left">Category</th>
-                      <th class="px-4 py-3 text-right">Gross Sales</th>
-                      <th class="px-4 py-3 text-right">Venue Cut</th>
-                      <th class="px-4 py-3 text-right">Org. Cut</th>
-                      <th class="px-4 py-3 text-right">Net Payout</th>
-                      <th class="px-4 py-3 text-center">Payout Status</th>
-                      <th class="px-4 py-3 text-center">Actions</th>
+                    <tr class="bg-light-surface-container-low border-b border-light-outline-variant">
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Booth #</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Brand &amp; Kategori</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Omzet Kotor</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Potongan Venue</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Potongan EO</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Hak Bersih Tenant</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-center">Status Transfer</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-800">
+                  <tbody class="divide-y divide-light-outline-variant">
                     <tr
                       v-for="row in settlementRows"
                       :key="row.id"
-                      class="hover:bg-slate-800/50 transition-colors"
+                      class="hover:bg-light-surface-container-low transition-colors duration-state-change ease-state-change"
                     >
-                      <td class="px-4 py-3 font-mono text-slate-300 text-xs">{{ row.booth_number || '—' }}</td>
-                      <td class="px-4 py-3 font-medium text-slate-100">{{ row.name }}</td>
-                      <td class="px-4 py-3 text-slate-400">{{ row.category || '—' }}</td>
-                      <td class="px-4 py-3 text-right text-slate-200 font-mono">{{ formatRupiah(row.gross) }}</td>
-                      <td class="px-4 py-3 text-right text-violet-400 font-mono font-semibold">{{ formatRupiah(row.venueCut) }}</td>
-                      <td class="px-4 py-3 text-right text-amber-400 font-mono font-semibold">{{ formatRupiah(row.orgCut) }}</td>
-                      <td class="px-4 py-3 text-right text-emerald-400 font-mono font-semibold">{{ formatRupiah(row.net) }}</td>
-                      <td class="px-4 py-3 text-center">
+                      <td class="py-gutter-md px-gutter-md">
+                        <span class="font-mono text-mono-sm px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container text-light-on-surface font-semibold">
+                          {{ row.booth_number || '—' }}
+                        </span>
+                      </td>
+                      <td class="py-gutter-md px-gutter-md">
+                        <p class="font-label text-label-lg font-bold text-light-on-surface">{{ row.name }}</p>
+                        <p class="font-body text-body-sm text-light-on-surface-variant">{{ row.category || 'Umum' }}</p>
+                      </td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-on-surface tabular-nums font-semibold">{{ formatRupiah(row.gross) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums">{{ formatRupiah(row.venueCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums">{{ formatRupiah(row.orgCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-primary tabular-nums font-bold">{{ formatRupiah(row.net) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-center">
                         <button
+                          type="button"
                           @click="togglePayoutStatus(row)"
                           :class="row.payout_status === 'SETTLED'
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
-                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30'"
-                          class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer"
+                            ? 'bg-light-secondary-container text-light-primary border border-light-primary hover:bg-light-surface-variant'
+                            : 'bg-light-tertiary-container text-light-on-tertiary-container border border-light-tertiary hover:opacity-90'"
+                          class="shrink-0 inline-flex items-center gap-1 px-gutter-sm py-gutter-xs rounded-full font-label text-label-sm font-semibold transition-colors cursor-pointer select-none"
                         >
                           <Check v-if="row.payout_status === 'SETTLED'" class="w-3 h-3" />
-                          {{ row.payout_status }}
+                          <span>{{ row.payout_status === 'SETTLED' ? 'LUNAS' : 'BELUM TRANSFER' }}</span>
                         </button>
                       </td>
-                      <td class="px-4 py-3 text-center">
-                        <div class="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                      <td class="py-gutter-md px-gutter-md text-right">
+                        <div class="inline-flex items-center gap-gutter-xs shrink-0">
                           <button
+                            type="button"
                             @click="exportTenantPdf(row)"
-                            class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500/40 transition-colors cursor-pointer"
                             :title="`Unduh slip settlement PDF untuk ${row.name}`"
+                            class="px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-on-surface hover:bg-light-surface-container-low transition-colors cursor-pointer"
                           >
-                            <FileText class="w-3.5 h-3.5 text-emerald-400" />
-                            <span>PDF</span>
+                            PDF
                           </button>
                           <button
+                            type="button"
                             @click="copyTenantWaSummary(row)"
-                            :class="copiedWaId === row.id
-                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                              : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-green-400 border-slate-700 hover:border-green-500/40'"
-                            class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
                             :title="`Salin ringkasan settlement WhatsApp untuk ${row.name}`"
+                            :class="copiedWaId === row.id
+                              ? 'bg-light-secondary-container text-light-primary border border-light-primary'
+                              : 'bg-light-primary text-light-on-primary hover:bg-light-primary-container'"
+                            class="px-gutter-sm py-gutter-xs rounded-sm font-label text-label-sm transition-colors cursor-pointer inline-flex items-center gap-1 font-semibold"
                           >
-                            <Check v-if="copiedWaId === row.id" class="w-3.5 h-3.5 text-emerald-400" />
-                            <MessageSquare v-else class="w-3.5 h-3.5 text-green-400" />
-                            <span>{{ copiedWaId === row.id ? 'Tersalin' : 'WA' }}</span>
+                            <Check v-if="copiedWaId === row.id" class="w-3 h-3" />
+                            <span v-else class="material-symbols-outlined text-[14px]">chat</span>
+                            <span>{{ copiedWaId === row.id ? 'Tersalin' : 'Kirim WA' }}</span>
                           </button>
                         </div>
                       </td>
@@ -2239,111 +2283,109 @@ async function copyTenantWaSummary(row) {
                   </tbody>
                   <!-- Totals footer -->
                   <tfoot>
-                    <tr class="bg-slate-800/80 text-xs font-bold border-t-2 border-slate-700">
-                      <td colspan="3" class="px-4 py-3 text-slate-400 uppercase tracking-wider">Totals</td>
-                      <td class="px-4 py-3 text-right text-slate-200 font-mono">{{ formatRupiah(totalGross) }}</td>
-                      <td class="px-4 py-3 text-right text-violet-400 font-mono">{{ formatRupiah(totalVenueCut) }}</td>
-                      <td class="px-4 py-3 text-right text-amber-400 font-mono">{{ formatRupiah(totalOrganizerCut) }}</td>
-                      <td class="px-4 py-3 text-right text-emerald-400 font-mono">{{ formatRupiah(totalTenantNet) }}</td>
+                    <tr class="bg-light-surface-container-low text-xs font-bold border-t-2 border-light-outline-variant">
+                      <td colspan="2" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase tracking-wider">Total Keseluruhan</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-on-surface tabular-nums font-bold">{{ formatRupiah(totalGross) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(totalVenueCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(totalOrganizerCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-primary tabular-nums font-bold">{{ formatRupiah(totalTenantNet) }}</td>
                       <td colspan="2"></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
 
-              <!-- Mobile Stacked Card View (< 768px) -->
-              <div class="md:hidden space-y-3">
-                <div
+              <!-- Mobile Stacked Card View (< 768px: md:hidden) -->
+              <div class="md:hidden flex flex-col gap-gutter-md p-gutter-md">
+                <article
                   v-for="row in settlementRows"
                   :key="row.id"
-                  class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3"
+                  class="p-gutter-lg rounded-lg bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-md"
                 >
-                  <!-- Card Header: Booth + Name + Category + Payout Status Pill -->
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="space-y-1 min-w-0 flex-1">
-                      <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-amber-400 border border-slate-700">
-                          #{{ row.booth_number || '—' }}
-                        </span>
-                        <h4 class="font-bold text-slate-100 text-sm truncate">{{ row.name }}</h4>
+                  <div class="flex items-center justify-between gap-gutter-sm">
+                    <div class="flex items-center gap-gutter-sm min-w-0">
+                      <span class="shrink-0 font-mono text-mono-sm px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container text-light-on-surface font-semibold">
+                        {{ row.booth_number || '—' }}
+                      </span>
+                      <div class="min-w-0">
+                        <h3 class="font-title text-title-md font-bold text-light-on-surface truncate">{{ row.name }}</h3>
+                        <p class="font-body text-body-sm text-light-on-surface-variant">{{ row.category || 'Umum' }}</p>
                       </div>
-                      <p class="text-xs text-slate-400">{{ row.category || 'Umum' }}</p>
                     </div>
                     <button
+                      type="button"
                       @click="togglePayoutStatus(row)"
                       :class="row.payout_status === 'SETTLED'
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-400 border-amber-500/30'"
-                      class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer touch-manipulation select-none"
+                        ? 'bg-light-secondary-container text-light-primary border border-light-primary'
+                        : 'bg-light-tertiary-container text-light-on-tertiary-container border border-light-tertiary'"
+                      class="shrink-0 inline-flex items-center gap-1 px-gutter-sm py-gutter-xs rounded-full font-label text-label-sm font-semibold cursor-pointer select-none"
                     >
                       <Check v-if="row.payout_status === 'SETTLED'" class="w-3 h-3" />
-                      {{ row.payout_status }}
+                      <span>{{ row.payout_status === 'SETTLED' ? 'LUNAS' : 'BELUM TRANSFER' }}</span>
                     </button>
                   </div>
 
-                  <!-- 2x2 Metric Grid -->
-                  <div class="grid grid-cols-2 gap-2 bg-slate-900/80 border border-slate-800/80 rounded-lg p-2.5 text-xs">
+                  <!-- 2x2 Financial Metric Grid -->
+                  <div class="grid grid-cols-2 gap-gutter-md p-gutter-md rounded-md bg-light-surface-container-low">
                     <div>
-                      <span class="text-[11px] text-slate-400 block">Gross Sales</span>
-                      <span class="font-mono font-bold text-slate-200">{{ formatRupiah(row.gross) }}</span>
+                      <span class="font-label text-label-sm text-light-on-surface-variant block">Omzet Kotor</span>
+                      <span class="font-mono text-mono-md text-light-on-surface tabular-nums font-semibold">{{ formatRupiah(row.gross) }}</span>
                     </div>
                     <div>
-                      <span class="text-[11px] text-emerald-400 block">Net Payout</span>
-                      <span class="font-mono font-bold text-emerald-400">{{ formatRupiah(row.net) }}</span>
+                      <span class="font-label text-label-sm text-light-on-surface-variant block">Potongan Venue</span>
+                      <span class="font-mono text-mono-md text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(row.venueCut) }}</span>
                     </div>
                     <div>
-                      <span class="text-[11px] text-violet-400 block">Venue Cut</span>
-                      <span class="font-mono text-violet-400 font-semibold">{{ formatRupiah(row.venueCut) }}</span>
+                      <span class="font-label text-label-sm text-light-on-surface-variant block">Potongan EO</span>
+                      <span class="font-mono text-mono-md text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(row.orgCut) }}</span>
                     </div>
                     <div>
-                      <span class="text-[11px] text-amber-400 block">Org. Cut</span>
-                      <span class="font-mono text-amber-400 font-semibold">{{ formatRupiah(row.orgCut) }}</span>
+                      <span class="font-label text-label-sm text-light-on-surface-variant block">Hak Bersih Tenant</span>
+                      <span class="font-mono text-mono-md text-light-primary tabular-nums font-bold">{{ formatRupiah(row.net) }}</span>
                     </div>
                   </div>
 
-                  <!-- Bottom Action Buttons: PDF, Salin WA -->
-                  <div class="flex items-center gap-2 pt-1">
+                  <!-- Action Buttons: Unduh PDF & Salin Rekap WA -->
+                  <div class="grid grid-cols-2 gap-gutter-sm">
                     <button
+                      type="button"
                       @click="exportTenantPdf(row)"
-                      class="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-700 transition-colors cursor-pointer touch-manipulation select-none"
-                      :title="`Unduh slip settlement PDF untuk ${row.name}`"
+                      class="py-gutter-sm px-gutter-md rounded-md bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-md text-light-on-surface hover:bg-light-surface-container-low transition-colors cursor-pointer text-center"
                     >
-                      <FileText class="w-3.5 h-3.5 text-emerald-400" />
-                      <span>PDF</span>
+                      Unduh PDF
                     </button>
                     <button
+                      type="button"
                       @click="copyTenantWaSummary(row)"
                       :class="copiedWaId === row.id
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-green-500/40'"
-                      class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border transition-colors cursor-pointer touch-manipulation select-none"
-                      :title="`Salin ringkasan settlement WhatsApp untuk ${row.name}`"
+                        ? 'bg-light-secondary-container text-light-primary border border-light-primary'
+                        : 'bg-light-primary text-light-on-primary hover:bg-light-primary-container'"
+                      class="py-gutter-sm px-gutter-md rounded-md font-label text-label-md transition-colors cursor-pointer flex items-center justify-center gap-1 font-semibold text-center"
                     >
-                      <Check v-if="copiedWaId === row.id" class="w-3.5 h-3.5 text-emerald-400" />
-                      <MessageSquare v-else class="w-3.5 h-3.5 text-green-400" />
-                      <span>{{ copiedWaId === row.id ? 'Tersalin' : 'Salin WA' }}</span>
+                      <Check v-if="copiedWaId === row.id" class="w-3.5 h-3.5" />
+                      <span>{{ copiedWaId === row.id ? 'Tersalin' : 'Salin Rekap WA' }}</span>
                     </button>
                   </div>
-                </div>
+                </article>
 
                 <!-- Compact Totals Summary Card at bottom of mobile list -->
-                <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-4 space-y-2">
-                  <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Keseluruhan</span>
-                    <span class="font-mono font-bold text-sm text-white">{{ formatRupiah(totalGross) }}</span>
+                <div class="p-gutter-md rounded-lg bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-sm">
+                  <div class="flex items-center justify-between border-b border-light-outline-variant pb-2">
+                    <span class="font-label text-label-sm font-bold text-light-on-surface-variant uppercase tracking-wider">Total Keseluruhan</span>
+                    <span class="font-mono font-bold text-base text-light-on-surface tabular-nums">{{ formatRupiah(totalGross) }}</span>
                   </div>
                   <div class="grid grid-cols-3 gap-2 text-xs pt-1">
                     <div>
-                      <span class="text-[10px] text-violet-400 block">Venue Cut</span>
-                      <span class="font-mono font-semibold text-violet-400">{{ formatRupiah(totalVenueCut) }}</span>
+                      <span class="font-label text-[10px] text-light-on-surface-variant block">Venue Cut</span>
+                      <span class="font-mono font-semibold text-light-on-surface-variant tabular-nums text-xs">{{ formatRupiah(totalVenueCut) }}</span>
                     </div>
                     <div>
-                      <span class="text-[10px] text-amber-400 block">Org. Cut</span>
-                      <span class="font-mono font-semibold text-amber-400">{{ formatRupiah(totalOrganizerCut) }}</span>
+                      <span class="font-label text-[10px] text-light-on-surface-variant block">Org. Cut</span>
+                      <span class="font-mono font-semibold text-light-on-surface-variant tabular-nums text-xs">{{ formatRupiah(totalOrganizerCut) }}</span>
                     </div>
                     <div>
-                      <span class="text-[10px] text-emerald-400 block">Tenant Net</span>
-                      <span class="font-mono font-bold text-emerald-400">{{ formatRupiah(totalTenantNet) }}</span>
+                      <span class="font-label text-[10px] text-light-primary block">Tenant Net</span>
+                      <span class="font-mono font-bold text-light-primary tabular-nums text-xs">{{ formatRupiah(totalTenantNet) }}</span>
                     </div>
                   </div>
                 </div>

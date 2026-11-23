@@ -2,9 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Market Emerald Brand Tokens */
+  --color-primary: #006948;
+  --color-primary-dark: #004E35;
+  --color-primary-container: #00855D;
+  --color-on-primary-container: #F5FFF7;
+
+  /* Surface & Canvas Tokens */
+  --color-surface-canvas: #F5FBF5;
+  --color-surface-canvas-alt: #EFF5EF;
+  --color-surface-container: #FFFFFF;
+  --color-surface-container-low: #EFF5EF;
+  --color-surface-container-lowest: #FFFFFF;
+
+  /* Typography & Content Colors */
+  --color-text-primary: #171D1A;
+  --color-text-secondary: #3E4943;
+
+  /* Borders & Outlines */
+  --color-outline: #BEC9C1;
+  --color-outline-variant: #BCCAC0;
+
+  /* Semantic Status */
+  --color-error: #BA1A1A;
+  --color-warning: #D97706;
+  --color-info: #0369A1;
+  --color-qris: #0369A1;
+
+  /* Typography Families */
+  --font-body: 'Mulish', sans-serif;
+  --font-display: 'Radio Canada Big', sans-serif;
+  --font-mono: 'Red Hat Mono', monospace;
+
+  /* Shapes & Radii */
+  --radius-card: 12px;
+  --radius-bento: 12px;
+  --radius-button: 8px;
+  --radius-input: 8px;
+  --radius-bar: 2px;
+}
+
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased;
+    @apply bg-light-surface text-light-on-surface font-body antialiased;
   }
   button,
   [role="button"],
@@ -16,17 +57,30 @@
     @apply w-1.5;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-slate-900;
+    @apply bg-light-surface-container-low;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-600 rounded-full;
+    @apply bg-light-outline-variant rounded-full;
   }
 }
 
+.material-symbols-outlined {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1 !important;
+  box-sizing: content-box;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: ltr;
+  vertical-align: middle;
+}
+
 @layer utilities {
-  .rupiah {
+  .rupiah,
+  .tabular-nums,
+  [data-tabular-nums] {
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;

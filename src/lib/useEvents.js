@@ -1,39 +1,86 @@
 import { ref } from 'vue'
 import { supabase } from './supabase'
 
+// Module-level shared reactive state across the application
+const events = ref([])
+const activeEvent = ref(null)
+const selectedEventId = ref(sessionStorage.getItem('popuppos_selected_event_id') || '')
+const loadingEvents = ref(false)
+
 /**
  * Composable for managing POS events.
  * Provides reactive state and async operations for the events table.
  */
 export function useEvents() {
-  const events = ref([])
-  const activeEvent = ref(null)
-
   /**
    * Set the currently active event (used across the app to scope transactions).
    * @param {Object|null} event
    */
   function setActiveEvent(event) {
     activeEvent.value = event
+    selectedEventId.value = event?.id || ''
+    if (event?.id) {
+      sessionStorage.setItem('popuppos_selected_event_id', event.id)
+    } else {
+      sessionStorage.removeItem('popuppos_selected_event_id')
+    }
+  }
+
+  /**
+   * Set active event by its UUID id.
+   * @param {string} id
+   */
+  function selectEventId(id) {
+    selectedEventId.value = id
+    if (id) {
+      sessionStorage.setItem('popuppos_selected_event_id', id)
+      activeEvent.value = events.value.find(e => e.id === id) || null
+    } else {
+      sessionStorage.removeItem('popuppos_selected_event_id')
+      activeEvent.value = null
+    }
   }
 
   /**
    * Fetch all events from Supabase, ordered by most recent first.
-   * Populates the `events` ref.
+   * Populates the `events` ref and auto-selects active event if needed.
    */
   async function fetchEvents() {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('created_at', { ascending: false })
+    loadingEvents.value = true
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('[useEvents] fetchEvents error:', error.message)
-      throw error
+      if (error) {
+        console.error('[useEvents] fetchEvents error:', error.message)
+        throw error
+      }
+
+      events.value = data ?? []
+
+      // If selectedEventId exists in list, sync activeEvent
+      if (selectedEventId.value) {
+        const found = events.value.find(e => e.id === selectedEventId.value)
+        if (found) {
+          activeEvent.value = found
+          return events.value
+        }
+      }
+
+      // Otherwise auto-select the first ACTIVE event or the latest event
+      if (events.value.length > 0) {
+        const activeOne = events.value.find(e => e.status === 'ACTIVE') || events.value[0]
+        setActiveEvent(activeOne)
+      } else {
+        setActiveEvent(null)
+      }
+
+      return events.value
+    } finally {
+      loadingEvents.value = false
     }
-
-    events.value = data ?? []
-    return events.value
   }
 
   /**
@@ -90,7 +137,10 @@ export function useEvents() {
   return {
     events,
     activeEvent,
+    selectedEventId,
+    loadingEvents,
     setActiveEvent,
+    selectEventId,
     fetchEvents,
     createEvent,
     updateEvent
