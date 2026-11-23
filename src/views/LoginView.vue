@@ -1,45 +1,45 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 selection:bg-emerald-500/30">
+  <div class="min-h-screen bg-light-surface text-light-on-surface font-body flex flex-col items-center justify-center p-4 selection:bg-light-primary/20">
     <div class="w-full max-w-sm">
       <!-- Logo & Branding -->
       <div class="text-center mb-8">
-        <div class="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center mx-auto mb-4 text-emerald-400 shadow-xl shadow-emerald-500/10">
+        <div class="w-16 h-16 rounded-2xl bg-light-primary text-light-on-primary flex items-center justify-center mx-auto mb-4 shadow-sm">
           <ShieldCheck class="w-8 h-8" />
         </div>
-        <h1 class="text-2xl font-black tracking-tight text-white">
-          PopUpPOS <span class="text-emerald-400">Staff</span>
+        <h1 class="text-2xl font-headline font-bold tracking-tight text-light-on-surface">
+          PopUpPOS <span class="text-light-primary">Staff</span>
         </h1>
-        <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+        <p class="text-xs text-light-on-surface-variant mt-1.5 leading-relaxed">
           Masuk dengan akun staf untuk mengakses terminal kasir dan dashboard admin
         </p>
       </div>
 
       <!-- Login Card -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+      <div class="bg-light-surface-container-lowest border border-light-outline-variant rounded-xl p-6 sm:p-8 shadow-xs space-y-5">
         <!-- Error Banner -->
         <div
           v-if="errorMessage"
-          class="flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 text-xs text-rose-300"
+          class="flex items-start gap-2.5 bg-light-error-container/20 border border-light-error/30 rounded-lg p-3 text-xs text-light-error"
         >
-          <AlertCircle class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <AlertCircle class="w-4 h-4 text-light-error shrink-0 mt-0.5" />
           <span class="leading-relaxed">{{ errorMessage }}</span>
         </div>
 
         <form @submit.prevent="handleLogin" class="space-y-4">
           <!-- Email Input -->
           <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+            <label class="text-xs font-label font-semibold text-light-on-surface-variant uppercase tracking-wider block">
               Email Staf
             </label>
             <div class="relative">
-              <Mail class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Mail class="w-4 h-4 text-light-on-surface-variant absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 v-model="email"
                 type="email"
                 required
                 autocomplete="email"
                 placeholder="staff@popuppos.com"
-                class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface placeholder:text-light-on-surface-variant rounded-md pl-10 pr-4 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary transition-all"
               />
             </div>
           </div>
@@ -47,24 +47,24 @@
           <!-- Password Input -->
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+              <label class="text-xs font-label font-semibold text-light-on-surface-variant uppercase tracking-wider block">
                 Password
               </label>
             </div>
             <div class="relative">
-              <Lock class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Lock class="w-4 h-4 text-light-on-surface-variant absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 required
                 autocomplete="current-password"
                 placeholder="••••••••"
-                class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface placeholder:text-light-on-surface-variant rounded-md pl-10 pr-10 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary transition-all"
               />
               <button
                 type="button"
                 @click="showPassword = !showPassword"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-light-on-surface-variant hover:text-light-on-surface transition-colors p-1 cursor-pointer"
                 tabindex="-1"
               >
                 <EyeOff v-if="showPassword" class="w-4 h-4" />
@@ -77,7 +77,7 @@
           <button
             type="submit"
             :disabled="isSubmitting || !email.trim() || !password"
-            class="w-full py-3 rounded-xl font-bold text-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer mt-2"
+            class="w-full py-2.5 rounded-md font-label font-bold text-sm bg-light-primary hover:bg-light-primary-container text-light-on-primary shadow-xs disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer mt-2"
           >
             <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
             <LogIn v-else class="w-4 h-4" />
@@ -86,12 +86,12 @@
         </form>
 
         <!-- Help Info Box -->
-        <div class="pt-3 border-t border-slate-800/80 text-[11px] text-slate-500 space-y-1">
-          <p class="flex items-center gap-1.5 text-slate-400 font-medium">
-            <KeyRound class="w-3.5 h-3.5 text-emerald-400" />
+        <div class="pt-3 border-t border-light-outline-variant text-[11px] text-light-on-surface-variant space-y-1">
+          <p class="flex items-center gap-1.5 text-light-on-surface font-semibold font-label">
+            <KeyRound class="w-3.5 h-3.5 text-light-primary" />
             Akses Staf Terproteksi
           </p>
-          <p>
+          <p class="font-body text-light-on-surface-variant">
             Akun kasir dan admin dikelola terpusat di Supabase Auth. Portal Tenant tetap dapat diakses vendor tanpa login melalui link token.
           </p>
         </div>

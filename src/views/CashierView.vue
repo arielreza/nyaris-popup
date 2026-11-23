@@ -32,15 +32,6 @@
           {{ events.find(e => e.id === selectedEventId)?.name || 'PopUpPOS' }}
         </span>
       </div>
-      <div class="flex items-center gap-2 shrink-0">
-        <button
-          @click="drawerOpen = !drawerOpen"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-light-outline-variant bg-light-surface-container-low text-light-on-surface-variant text-xs font-label font-semibold transition-colors hover:bg-light-surface-container"
-        >
-          <Clock class="w-3.5 h-3.5" />
-          <span>Riwayat Struk</span>
-        </button>
-      </div>
     </header>
 
     <!-- Main workspace -->
@@ -78,15 +69,15 @@
           <!-- LEFT COLUMN: Step 1 — Pilih Booth -->
           <main class="p-4 lg:p-6 flex flex-col gap-5 min-w-0 pb-32 lg:pb-6">
 
-            <!-- Section header (desktop only) -->
-            <div class="hidden lg:flex items-center justify-between gap-3">
+            <!-- Section header -->
+            <div class="flex items-center justify-between gap-3">
               <div class="flex items-center gap-3">
                 <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-light-primary text-light-on-primary text-xs font-bold font-label flex-shrink-0">1</span>
                 <h2 class="font-display font-semibold text-light-on-surface text-base">Pilih Booth</h2>
               </div>
               <button
                 @click="drawerOpen = !drawerOpen"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface-variant text-xs font-label font-semibold transition-colors hover:bg-light-surface-container"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface-variant text-xs font-label font-semibold transition-colors hover:bg-light-surface-container cursor-pointer"
               >
                 <Clock class="w-3.5 h-3.5" />
                 <span>Riwayat Struk</span>
@@ -195,7 +186,7 @@
           </main>
 
           <!-- RIGHT COLUMN: Step 2+3 — Cart & Payment (sticky on desktop) -->
-          <aside class="lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] lg:overflow-y-auto bg-light-surface-container-lowest border-t lg:border-t-0 lg:border-l border-light-outline-variant flex flex-col gap-0 pb-24 lg:pb-0">
+          <aside class="lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto bg-light-surface-container-lowest border-t lg:border-t-0 lg:border-l border-light-outline-variant flex flex-col gap-0 pb-24 lg:pb-0">
 
             <!-- Step 2: Cart -->
             <div class="p-4 lg:p-5 flex flex-col gap-3 border-b border-light-outline-variant">
@@ -383,33 +374,43 @@
       </template>
     </div>
 
-    <!-- Recent Transactions Drawer (bottom, full-width) -->
-    <div class="fixed bottom-0 left-0 right-0 z-40" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
-      <!-- Toggle Button -->
-      <button
-        @click="drawerOpen = !drawerOpen"
-        class="hidden lg:flex w-full bg-light-surface-container-lowest border-t border-light-outline-variant px-5 py-3 items-center justify-between hover:bg-light-surface-container-low transition-colors cursor-pointer"
-      >
-        <div class="flex items-center gap-2">
-          <Clock class="w-4 h-4 text-light-on-surface-variant" />
-          <span class="text-sm font-label font-semibold text-light-on-surface">Transaksi Terbaru</span>
-          <span v-if="recentTransactions.length > 0" class="bg-light-secondary-container text-light-on-secondary-container text-xs font-semibold rounded-full px-2 py-0.5">
-            <span v-if="txSearchQuery || txStatusFilter !== 'ALL'">
-              {{ filteredRecentTransactions.length }} / {{ recentTransactions.length }}
-            </span>
-            <span v-else>{{ recentTransactions.length }}</span>
-          </span>
-        </div>
-        <ChevronUp :class="['w-4 h-4 text-light-on-surface-variant transition-transform duration-200', drawerOpen ? 'rotate-180' : '']" />
-      </button>
+    <!-- Recent Transactions Modal Dialog -->
+    <Transition name="modal">
+      <div v-if="drawerOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="drawerOpen = false" />
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl z-10 overflow-hidden">
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-5 py-4 border-b border-light-outline-variant">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-light-surface-container-low flex items-center justify-center text-light-primary">
+                <Clock class="w-4 h-4" />
+              </div>
+              <div>
+                <h3 class="font-display font-bold text-light-on-surface text-base">Riwayat Struk Transaksi</h3>
+                <p class="text-xs text-light-on-surface-variant font-body">Daftar transaksi pada event aktif</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span v-if="recentTransactions.length > 0" class="bg-light-secondary-container text-light-on-secondary-container text-xs font-semibold rounded-full px-2.5 py-0.5 font-label">
+                <span v-if="txSearchQuery || txStatusFilter !== 'ALL'">
+                  {{ filteredRecentTransactions.length }} / {{ recentTransactions.length }}
+                </span>
+                <span v-else>{{ recentTransactions.length }} Transaksi</span>
+              </span>
+              <button
+                @click="drawerOpen = false"
+                class="text-light-on-surface-variant hover:text-light-on-surface p-1.5 rounded-md hover:bg-light-surface-container-low transition-colors cursor-pointer"
+                title="Tutup"
+              >
+                <X class="w-5 h-5" />
+              </button>
+            </div>
+          </div>
 
-      <!-- Drawer Content -->
-      <Transition name="drawer">
-        <div v-if="drawerOpen" class="bg-light-surface-container-lowest border-t border-light-outline-variant max-h-[32rem] flex flex-col">
           <!-- Filter Bar -->
           <div
             v-if="selectedEventId && recentTransactions.length > 0"
-            class="p-3 border-b border-light-outline-variant sticky top-0 z-10 bg-light-surface-container-lowest"
+            class="p-3 border-b border-light-outline-variant bg-light-surface-container-lowest"
           >
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               <!-- Search -->
@@ -419,7 +420,7 @@
                   v-model="txSearchQuery"
                   type="text"
                   placeholder="Cari kode struk atau nama tenant..."
-                  class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-primary text-light-on-surface placeholder-light-on-surface-variant rounded-md pl-8 pr-8 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-all"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-primary text-light-on-surface placeholder-light-on-surface-variant rounded-md pl-8 pr-8 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-all font-body"
                 />
                 <button
                   v-if="txSearchQuery"
@@ -462,26 +463,26 @@
 
           <!-- Transaction list -->
           <div class="overflow-y-auto flex-1 divide-y divide-light-outline-variant">
-            <div v-if="loadingTransactions" class="p-6 text-center text-light-on-surface-variant text-sm">
-              <Loader2 class="w-5 h-5 animate-spin mx-auto mb-2" />
+            <div v-if="loadingTransactions" class="p-6 text-center text-light-on-surface-variant text-sm font-body">
+              <Loader2 class="w-5 h-5 animate-spin mx-auto mb-2 text-light-primary" />
               Memuat transaksi…
             </div>
-            <div v-else-if="!selectedEventId" class="p-6 text-center text-light-on-surface-variant text-sm">
+            <div v-else-if="!selectedEventId" class="p-6 text-center text-light-on-surface-variant text-sm font-body">
               Pilih event untuk melihat transaksi.
             </div>
-            <div v-else-if="recentTransactions.length === 0" class="p-6 text-center text-light-on-surface-variant text-sm">
+            <div v-else-if="recentTransactions.length === 0" class="p-6 text-center text-light-on-surface-variant text-sm font-body">
               Belum ada transaksi.
             </div>
             <div
               v-else-if="filteredRecentTransactions.length === 0"
-              class="p-8 text-center text-light-on-surface-variant text-xs space-y-2"
+              class="p-8 text-center text-light-on-surface-variant text-xs space-y-2 font-body"
             >
               <Search class="w-6 h-6 text-light-on-surface-variant mx-auto" />
               <p class="font-label font-medium text-light-on-surface">Tidak ada transaksi yang cocok.</p>
               <button
                 type="button"
                 @click="txSearchQuery = ''; txStatusFilter = 'ALL'"
-                class="inline-flex items-center gap-1 text-light-primary hover:underline cursor-pointer text-xs"
+                class="inline-flex items-center gap-1 text-light-primary hover:underline cursor-pointer text-xs font-label"
               >
                 <RefreshCw class="w-3 h-3" />
                 <span>Reset filter</span>
@@ -517,7 +518,7 @@
                   ]">{{ tx.status }}</span>
                   <span v-if="tx.void_reason" class="text-[11px] text-light-error italic">({{ tx.void_reason }})</span>
                 </div>
-                <div class="flex items-center gap-2 text-xs flex-wrap">
+                <div class="flex items-center gap-2 text-xs flex-wrap font-body">
                   <span class="font-mono font-bold text-light-primary tabular-nums">{{ formatRupiah(tx.total_amount) }}</span>
                   <span class="text-light-on-surface-variant">•</span>
                   <span class="text-light-on-surface-variant">{{ formatDate(tx.created_at) }}</span>
@@ -563,8 +564,8 @@
             </div>
           </div>
         </div>
-      </Transition>
-    </div>
+      </div>
+    </Transition>
 
     <!-- Add to Cart Modal -->
     <Transition name="modal">
