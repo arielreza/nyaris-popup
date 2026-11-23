@@ -7,6 +7,13 @@ const activeEvent = ref(null)
 const selectedEventId = ref(sessionStorage.getItem('popuppos_selected_event_id') || '')
 const loadingEvents = ref(false)
 
+function isEventActive(e) {
+  if (!e) return false
+  const isCompleted = (e.status || '').toUpperCase() === 'COMPLETED'
+  const isActive = e.status ? (e.status.toUpperCase() === 'ACTIVE') : (e.is_active !== false)
+  return isActive && !isCompleted
+}
+
 /**
  * Composable for managing POS events.
  * Provides reactive state and async operations for the events table.
@@ -71,7 +78,7 @@ export function useEvents() {
 
       // Otherwise auto-select the first ACTIVE event or the latest event
       if (events.value.length > 0) {
-        const activeOne = events.value.find(e => e.status === 'ACTIVE') || events.value[0]
+        const activeOne = events.value.find(isEventActive) || events.value[0]
         setActiveEvent(activeOne)
       } else {
         setActiveEvent(null)
@@ -143,6 +150,7 @@ export function useEvents() {
     selectEventId,
     fetchEvents,
     createEvent,
-    updateEvent
+    updateEvent,
+    isEventActive
   }
 }

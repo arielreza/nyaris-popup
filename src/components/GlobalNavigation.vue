@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/lib/useAuth.js'
 import { useEvents } from '@/lib/useEvents.js'
@@ -7,7 +7,35 @@ import { useEvents } from '@/lib/useEvents.js'
 const route = useRoute()
 const router = useRouter()
 const { signOut, user } = useAuth()
-const { events, activeEvent, selectedEventId, selectEventId } = useEvents()
+const { events, activeEvent, selectedEventId, selectEventId, isEventActive } = useEvents()
+
+const isCashier = computed(() => route.path === '/')
+
+const displayedEvents = computed(() => {
+  if (isCashier.value) {
+    return events.value.filter(isEventActive)
+  }
+  return events.value
+})
+
+// Auto-fallback: if cashier view has a COMPLETED/inactive event selected, fallback to first ACTIVE event
+watch(
+  [() => route.path, events, selectedEventId],
+  () => {
+    if (isCashier.value && events.value.length > 0) {
+      const current = events.value.find((e) => e.id === selectedEventId.value)
+      if (!current || !isEventActive(current)) {
+        const firstActive = events.value.find(isEventActive)
+        if (firstActive) {
+          selectEventId(firstActive.id)
+        } else {
+          selectEventId('')
+        }
+      }
+    }
+  },
+  { immediate: true }
+)
 
 async function handleLogout() {
   await signOut()
@@ -127,9 +155,11 @@ function isNavActive(menuKey) {
               aria-label="Pilih Event Aktif"
               class="bg-transparent text-light-on-secondary-container font-label text-label-sm font-semibold focus:outline-none cursor-pointer truncate max-w-[190px] pr-1"
             >
-              <option v-if="events.length === 0" value="">Belum Ada Event</option>
-              <option v-for="ev in events" :key="ev.id" :value="ev.id" class="text-light-on-surface bg-light-surface">
-                {{ ev.name }} {{ ev.status === 'ACTIVE' ? '(Aktif)' : '' }}
+              <option v-if="displayedEvents.length === 0" value="">
+                {{ isCashier ? 'Tidak Ada Event Aktif' : 'Belum Ada Event' }}
+              </option>
+              <option v-for="ev in displayedEvents" :key="ev.id" :value="ev.id" class="text-light-on-surface bg-light-surface">
+                {{ ev.name }}{{ !isCashier && isEventActive(ev) ? ' (Aktif)' : (!isCashier && (ev.status || '').toUpperCase() === 'COMPLETED' ? ' (Selesai)' : '') }}
               </option>
             </select>
           </div>

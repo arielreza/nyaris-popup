@@ -943,9 +943,16 @@ const tenants = ref([])
 const recentTransactions = ref([])
 
 watch(globalEventId, async (newId) => {
-  if (newId && newId !== selectedEventId.value && events.value.some((e) => e.id === newId)) {
-    selectedEventId.value = newId
-    await onEventChange()
+  if (newId && newId !== selectedEventId.value) {
+    const target = events.value.find((e) => e.id === newId)
+    if (target) {
+      selectedEventId.value = newId
+      await onEventChange()
+    } else if (events.value.length > 0) {
+      selectedEventId.value = events.value[0].id
+      setGlobalEventId(events.value[0].id)
+      await onEventChange()
+    }
   }
 })
 
@@ -1335,8 +1342,12 @@ async function fetchEvents() {
       .select('id, name, venue, event_dates, status, is_active, created_at')
       .order('created_at', { ascending: false })
     if (error) throw error
-    // Filter to only ACTIVE events
-    events.value = (data || []).filter((e) => (e.status ? e.status === 'ACTIVE' : e.is_active !== false))
+    // Filter to only ACTIVE events (exclude COMPLETED)
+    events.value = (data || []).filter((e) => {
+      const isCompleted = (e.status || '').toUpperCase() === 'COMPLETED'
+      const isActive = e.status ? (e.status.toUpperCase() === 'ACTIVE') : (e.is_active !== false)
+      return isActive && !isCompleted
+    })
 
     // Auto-select the first active event or maintain current if still active
     const globalMatch = globalEventId.value && events.value.find((e) => e.id === globalEventId.value)
@@ -1344,11 +1355,13 @@ async function fetchEvents() {
     if (globalMatch) {
       selectedEventId.value = globalMatch.id
       await onEventChange()
-    } else if ((!selectedEventId.value || !stillActive) && events.value.length > 0) {
+    } else if (events.value.length > 0) {
       selectedEventId.value = events.value[0].id
+      setGlobalEventId(events.value[0].id)
       await onEventChange()
-    } else if (events.value.length === 0) {
+    } else {
       selectedEventId.value = ''
+      setGlobalEventId('')
       tenants.value = []
       cart.value = []
     }
@@ -1435,15 +1448,25 @@ async function onEventChange() {
 
 // ─── Realtime Subscription ────────────────────────────────────────────────────
 
-function subscribeRealtime() {
+function cleanupRealtime() {
   if (realtimeChannel) {
-    supabase.removeChannel(realtimeChannel)
+    try {
+      supabase.removeChannel(realtimeChannel)
+    } catch (err) {
+      console.warn('[Cashier Realtime] Cleanup error:', err)
+    }
     realtimeChannel = null
   }
+}
+
+function subscribeRealtime() {
+  cleanupRealtime()
   if (!selectedEventId.value) return
 
+  const uniqueTopic = `transactions:event:${selectedEventId.value}:${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+
   realtimeChannel = supabase
-    .channel(`transactions:event:${selectedEventId.value}`)
+    .channel(uniqueTopic)
     .on(
       'postgres_changes',
       {
@@ -1463,7 +1486,11 @@ function subscribeRealtime() {
       },
       () => { fetchRecentTransactions() }
     )
-    .subscribe()
+    .subscribe((status, err) => {
+      if (err) {
+        console.warn('[Cashier Realtime] Subscription status:', status, err)
+      }
+    })
 }
 
 // ─── Payment Processing ───────────────────────────────────────────────────────
@@ -1623,9 +1650,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (realtimeChannel) {
-    supabase.removeChannel(realtimeChannel)
-  }
+  cleanupRealtime()
 })
 </script>
 

@@ -432,13 +432,18 @@ async function fetchTransactionItems(eventId) {
 
 function subscribeRealtime(eventId) {
   if (realtimeChannel) {
-    supabase.removeChannel(realtimeChannel)
+    try {
+      supabase.removeChannel(realtimeChannel)
+    } catch (err) {
+      console.warn('[Admin Realtime] Cleanup error:', err)
+    }
     realtimeChannel = null
   }
   if (!eventId) return
 
+  const uniqueTopic = `admin-items-${eventId}:${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
   realtimeChannel = supabase
-    .channel(`admin-items-${eventId}`)
+    .channel(uniqueTopic)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'transaction_items' },
@@ -449,7 +454,9 @@ function subscribeRealtime(eventId) {
       { event: '*', schema: 'public', table: 'transactions', filter: `event_id=eq.${eventId}` },
       () => { fetchTransactionItems(eventId) }
     )
-    .subscribe()
+    .subscribe((status, err) => {
+      if (err) console.warn('[Admin Realtime] Subscription status:', status, err)
+    })
 }
 
 // ─── Watch selected event ─────────────────────────────────────────────────────
@@ -540,9 +547,35 @@ async function createEvent() {
 
 async function addTenant() {
   addTenantError.value = ''
-  if (!newTenant.value.name.trim()) {
+  const trimmedName = newTenant.value.name.trim()
+  if (!trimmedName) {
     addTenantError.value = 'Tenant name is required.'
     return
+  }
+
+  // 1. Validasi Brand duplikat di event ini
+  const isDuplicateBrand = tenants.value.some(
+    (t) => (t.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
+  )
+  if (isDuplicateBrand) {
+    const errorMsg = `Brand "${trimmedName}" sudah terdaftar di lineup event ini.`
+    addTenantError.value = errorMsg
+    showToast('error', errorMsg)
+    return
+  }
+
+  // 2. Validasi Nomor/Kode Booth duplikat di event ini (jika diisi)
+  const trimmedBooth = (newTenant.value.booth_number || '').trim()
+  if (trimmedBooth) {
+    const isDuplicateBooth = tenants.value.some(
+      (t) => (t.booth_number || '').trim().toLowerCase() === trimmedBooth.toLowerCase()
+    )
+    if (isDuplicateBooth) {
+      const errorMsg = `Nomor/Kode Booth "${trimmedBooth}" sudah digunakan oleh booth lain di event ini.`
+      addTenantError.value = errorMsg
+      showToast('error', errorMsg)
+      return
+    }
   }
 
   const finalCategory = selectedCategory.value === 'Other (Custom)'
@@ -922,10 +955,36 @@ function closeEditTenantModal() {
 async function saveEditTenant() {
   if (!editingTenant.value) return
   editTenantError.value = ''
+  const trimmedName = editingTenant.value.name.trim()
 
-  if (!editingTenant.value.name.trim()) {
+  if (!trimmedName) {
     editTenantError.value = 'Nama tenant tidak boleh kosong.'
     return
+  }
+
+  // 1. Validasi Brand duplikat di event ini (kecuali booth ini sendiri)
+  const isDuplicateBrand = tenants.value.some(
+    (t) => t.id !== editingTenant.value.id && (t.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
+  )
+  if (isDuplicateBrand) {
+    const errorMsg = `Brand "${trimmedName}" sudah terdaftar pada booth lain di event ini.`
+    editTenantError.value = errorMsg
+    showToast('error', errorMsg)
+    return
+  }
+
+  // 2. Validasi Nomor/Kode Booth duplikat di event ini (kecuali booth ini sendiri, jika diisi)
+  const trimmedBooth = (editingTenant.value.booth_number || '').trim()
+  if (trimmedBooth) {
+    const isDuplicateBooth = tenants.value.some(
+      (t) => t.id !== editingTenant.value.id && (t.booth_number || '').trim().toLowerCase() === trimmedBooth.toLowerCase()
+    )
+    if (isDuplicateBooth) {
+      const errorMsg = `Nomor/Kode Booth "${trimmedBooth}" sudah digunakan oleh booth lain di event ini.`
+      editTenantError.value = errorMsg
+      showToast('error', errorMsg)
+      return
+    }
   }
 
   const finalCategory = editTenantCategory.value === 'Other (Custom)'
@@ -1105,17 +1164,24 @@ let masterRealtimeChannel = null
 
 function subscribeMasterRealtime() {
   if (masterRealtimeChannel) {
-    supabase.removeChannel(masterRealtimeChannel)
+    try {
+      supabase.removeChannel(masterRealtimeChannel)
+    } catch (err) {
+      console.warn('[Master Realtime] Cleanup error:', err)
+    }
     masterRealtimeChannel = null
   }
+  const uniqueTopic = `admin-master-tenants-sync:${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
   masterRealtimeChannel = supabase
-    .channel('admin-master-tenants-sync')
+    .channel(uniqueTopic)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'master_tenants' },
       () => { fetchMasterTenants() }
     )
-    .subscribe()
+    .subscribe((status, err) => {
+      if (err) console.warn('[Master Realtime] Subscription status:', status, err)
+    })
 }
 
 async function fetchMasterTenants() {
@@ -1252,10 +1318,23 @@ function openAddMasterModal() {
 
 async function createMasterTenant() {
   createMasterError.value = ''
-  if (!newMasterTenant.value.name.trim()) {
+  const trimmedName = newMasterTenant.value.name.trim()
+  if (!trimmedName) {
     createMasterError.value = 'Brand name is required.'
     return
   }
+
+  // Anti-duplicate brand name validation (case-insensitive, trim spasi)
+  const isDuplicate = masterTenants.value.some(
+    (m) => (m.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
+  )
+  if (isDuplicate) {
+    const errorMsg = `Brand dengan nama "${trimmedName}" sudah terdaftar di Database Brand.`
+    createMasterError.value = errorMsg
+    showToast('error', errorMsg)
+    return
+  }
+
   const finalCategory = newMasterTenant.value.category === 'Other (Custom)'
     ? newMasterTenant.value.customCategory.trim()
     : newMasterTenant.value.category
@@ -1342,10 +1421,23 @@ function openEditMasterModal(mt) {
 async function saveEditMasterTenant() {
   if (!editingMasterTenant.value) return
   editMasterError.value = ''
-  if (!editingMasterTenant.value.name.trim()) {
+  const trimmedName = editingMasterTenant.value.name.trim()
+  if (!trimmedName) {
     editMasterError.value = 'Brand name is required.'
     return
   }
+
+  // Anti-duplicate brand name validation (excluding self, case-insensitive, trim spasi)
+  const isDuplicate = masterTenants.value.some(
+    (m) => m.id !== editingMasterTenant.value.id && (m.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
+  )
+  if (isDuplicate) {
+    const errorMsg = `Brand dengan nama "${trimmedName}" sudah digunakan oleh brand lain di Database Brand.`
+    editMasterError.value = errorMsg
+    showToast('error', errorMsg)
+    return
+  }
+
   const finalCategory = editMasterCategory.value === 'Other (Custom)'
     ? editMasterCustomCategory.value.trim()
     : editMasterCategory.value
@@ -1468,8 +1560,35 @@ function openAssignSingleMasterModal(mt) {
 }
 
 async function confirmAssignMasterToActiveEvent() {
-  if (!targetMasterTenant.value || !assignTargetEventId.value || isBrandAlreadyInTargetEvent.value) return
+  if (!targetMasterTenant.value || !assignTargetEventId.value) return
   assignMasterError.value = ''
+
+  // 1. Anti-duplicate brand check in target event
+  if (isBrandAlreadyInTargetEvent.value) {
+    const errorMsg = `Brand "${targetMasterTenant.value.name}" sudah terdaftar di lineup event terpilih.`
+    assignMasterError.value = errorMsg
+    showToast('error', errorMsg)
+    return
+  }
+
+  // 2. Anti-duplicate booth number check in target event (if provided)
+  const trimmedBooth = assignBoothNumber.value.trim()
+  if (trimmedBooth) {
+    const targetBooths = assignTargetEventId.value === selectedEventId.value
+      ? tenants.value
+      : allTenantsList.value.filter(t => t.event_id === assignTargetEventId.value)
+
+    const isDuplicateBooth = targetBooths.some(
+      (t) => (t.booth_number || '').trim().toLowerCase() === trimmedBooth.toLowerCase()
+    )
+    if (isDuplicateBooth) {
+      const errorMsg = `Nomor/Kode Booth "${trimmedBooth}" sudah digunakan oleh booth lain di event terpilih.`
+      assignMasterError.value = errorMsg
+      showToast('error', errorMsg)
+      return
+    }
+  }
+
   assigningToActiveEvent.value = true
 
   const targetEv = assignTargetEvent.value
@@ -1593,6 +1712,48 @@ function toggleSelectAllLineupMasters() {
 
 async function confirmAssignMastersToLineup() {
   if (selectedMasterIds.value.size === 0 || !selectedEventId.value) return
+
+  // 1. Check if any selected brand is already registered in active event
+  const existingBrandNames = new Set(tenants.value.map(t => (t.name || '').trim().toLowerCase()))
+  const existingMasterIds = new Set(tenants.value.map(t => t.master_tenant_id).filter(Boolean))
+
+  for (const masterId of selectedMasterIds.value) {
+    const master = masterTenants.value.find((m) => m.id === masterId)
+    if (!master) continue
+    const masterNameLower = (master.name || '').trim().toLowerCase()
+    if (existingMasterIds.has(master.id) || existingBrandNames.has(masterNameLower)) {
+      const errorMsg = `Brand "${master.name}" sudah terdaftar di lineup event ini.`
+      showToast('error', errorMsg)
+      return
+    }
+  }
+
+  // 2. Check booth number duplicates (both against existing event booths and between newly assigned booths)
+  const existingBoothNumbers = new Set(
+    tenants.value
+      .map(t => (t.booth_number || '').trim().toLowerCase())
+      .filter(Boolean)
+  )
+  const newBatchBooths = new Set()
+
+  for (const masterId of selectedMasterIds.value) {
+    const rawBooth = (lineupAssignBooths.value[masterId] || '').trim()
+    if (rawBooth) {
+      const lowerBooth = rawBooth.toLowerCase()
+      if (existingBoothNumbers.has(lowerBooth)) {
+        const errorMsg = `Nomor/Kode Booth "${rawBooth}" sudah digunakan oleh booth lain di event ini.`
+        showToast('error', errorMsg)
+        return
+      }
+      if (newBatchBooths.has(lowerBooth)) {
+        const errorMsg = `Nomor/Kode Booth "${rawBooth}" dimasukkan lebih dari sekali dalam penugasan ini.`
+        showToast('error', errorMsg)
+        return
+      }
+      newBatchBooths.add(lowerBooth)
+    }
+  }
+
   assigningLineup.value = true
 
   const venueShare = Number(selectedEvent.value?.venue_share_percent ?? 10)
