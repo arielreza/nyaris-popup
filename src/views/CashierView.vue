@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+  <div class="min-h-screen bg-light-surface text-light-on-surface flex flex-col">
 
     <!-- Error Banner -->
     <Transition name="slide-down">
-      <div v-if="errorMessage" class="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white px-4 py-3 flex items-center justify-between shadow-lg">
+      <div v-if="errorMessage" class="fixed top-16 left-0 right-0 z-50 bg-light-error text-light-on-error px-4 py-3 flex items-center justify-between shadow-lg">
         <div class="flex items-center gap-2">
           <AlertCircle class="w-5 h-5 flex-shrink-0" />
           <span class="text-sm font-medium">{{ errorMessage }}</span>
         </div>
-        <button @click="errorMessage = ''" class="ml-4 hover:bg-red-700 rounded-lg p-1 transition-colors">
+        <button @click="errorMessage = ''" class="ml-4 hover:bg-black/10 rounded-lg p-1 transition-colors">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -16,7 +16,7 @@
 
     <!-- Success Toast -->
     <Transition name="slide-down">
-      <div v-if="successMessage" class="fixed top-0 left-0 right-0 z-50 bg-emerald-600 text-white px-4 py-3 flex items-center justify-between shadow-lg">
+      <div v-if="successMessage" class="fixed top-16 left-0 right-0 z-50 bg-light-secondary-container text-light-on-secondary-container px-4 py-3 flex items-center justify-between shadow-lg">
         <div class="flex items-center gap-2">
           <CheckCircle class="w-5 h-5 flex-shrink-0" />
           <span class="text-sm font-medium">{{ successMessage }}</span>
@@ -24,201 +24,218 @@
       </div>
     </Transition>
 
-    <!-- Top Bar -->
-    <header class="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2.5 sm:py-3 sticky top-0 z-30">
-      <div class="max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
-        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <ShoppingCart class="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400 shrink-0" />
-          <h1 class="text-sm sm:text-lg font-bold tracking-tight text-slate-100 whitespace-nowrap">PopUpPOS</h1>
-        </div>
-        <!-- Event Selector & Admin Nav -->
-        <div class="flex items-center gap-1.5 sm:gap-2 flex-1 justify-end min-w-0">
-          <CalendarDays class="w-4 h-4 text-slate-400 flex-shrink-0" />
-          <select
-            v-model="selectedEventId"
-            @change="onEventChange"
-            class="bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-xl px-2 sm:px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-0 max-w-[125px] xs:max-w-[150px] sm:max-w-[180px] truncate"
-            :disabled="loadingEvents || events.length === 0"
-          >
-            <option value="">{{ events.length === 0 ? '— Belum Ada Event Aktif —' : '— Pilih Event —' }}</option>
-            <option v-for="ev in events" :key="ev.id" :value="ev.id">{{ ev.name }}</option>
-          </select>
-          <span v-if="loadingEvents" class="hidden xs:inline text-slate-500 text-xs">loading…</span>
-
-          <router-link
-            to="/admin"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0"
-            title="Ke Dashboard Admin"
-          >
-            <ShieldCheck class="w-3.5 h-3.5 text-emerald-400" />
-            <span>Admin</span>
-          </router-link>
-
-          <button
-            @click="handleLogout"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer"
-            title="Keluar dari akun staf"
-          >
-            <LogOut class="w-3.5 h-3.5" />
-          </button>
-        </div>
+    <!-- Mobile compact header (only shown on mobile, GlobalNavigation handles desktop top nav) -->
+    <header class="lg:hidden sticky top-0 z-30 bg-light-surface-container-lowest border-b border-light-outline-variant px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 min-w-0">
+        <ShoppingCart class="w-5 h-5 text-light-primary flex-shrink-0" />
+        <span class="font-display font-bold text-light-on-surface text-sm truncate">
+          {{ events.find(e => e.id === selectedEventId)?.name || 'PopUpPOS' }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          @click="drawerOpen = !drawerOpen"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-light-outline-variant bg-light-surface-container-low text-light-on-surface-variant text-xs font-label font-semibold transition-colors hover:bg-light-surface-container"
+        >
+          <Clock class="w-3.5 h-3.5" />
+          <span>Riwayat Struk</span>
+        </button>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main :class="selectedEventId ? 'max-w-6xl' : 'max-w-2xl'" class="flex-1 mx-auto w-full px-4 py-4 flex flex-col gap-4 pb-36 sm:pb-28 lg:pb-12">
+    <!-- Main workspace -->
+    <div class="flex-1 flex flex-col lg:flex-row min-h-0">
 
       <!-- No Event Selected -->
-      <div v-if="!selectedEventId" class="flex flex-col items-center justify-center py-20 text-slate-500 gap-4 text-center px-4">
-        <CalendarDays class="w-12 h-12 text-slate-700" />
-        <div class="space-y-1">
-          <p class="font-medium text-slate-300">
-            {{ events.length === 0 ? 'Tidak ada event aktif saat ini' : 'Pilih event untuk memulai' }}
+      <div v-if="!selectedEventId" class="flex-1 flex flex-col items-center justify-center py-20 gap-6 text-center px-6">
+        <div class="w-16 h-16 rounded-full bg-light-surface-container-low border border-light-outline-variant flex items-center justify-center">
+          <CalendarDays class="w-8 h-8 text-light-on-surface-variant" />
+        </div>
+        <div class="space-y-2">
+          <p class="font-display font-semibold text-light-on-surface text-lg">
+            {{ events.length === 0 ? 'Tidak ada event aktif' : 'Pilih event untuk memulai' }}
           </p>
-          <p class="text-sm text-slate-500">
-            {{ events.length === 0 ? 'Aktifkan event di menu Admin agar kasir dapat memproses transaksi.' : 'Pilih event dari dropdown di atas untuk memuat lineup tenant.' }}
+          <p class="text-sm text-light-on-surface-variant max-w-xs">
+            {{ events.length === 0
+              ? 'Aktifkan event di menu Admin agar kasir dapat memproses transaksi.'
+              : 'Pilih event dari menu navigasi atas untuk memuat lineup tenant.' }}
           </p>
         </div>
         <router-link
           v-if="events.length === 0"
           to="/admin"
-          class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-lg shadow-emerald-500/20"
+          class="inline-flex items-center gap-2 bg-light-primary text-light-on-primary px-5 py-2.5 rounded-md text-sm font-label font-semibold transition-colors hover:opacity-90 active:scale-[0.98]"
         >
           <ShieldCheck class="w-4 h-4" />
           <span>Buka Dashboard Admin</span>
         </router-link>
       </div>
 
+      <!-- Active event workspace: 2-col grid on desktop -->
       <template v-else>
-        <!-- Responsive 2-Column Split-View on Desktop/Tablet -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-[1fr_430px]">
 
-          <!-- Left Column: Quick Search, Category Pills & Tenant Grid (lg:col-span-7) -->
-          <div class="lg:col-span-7 space-y-4">
-            <!-- Tenant Grid -->
-            <section class="space-y-3">
-              <div class="flex items-center justify-between">
-                <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Tenant</h2>
-                <span v-if="tenants.length > 0 && !loadingTenants" class="text-xs text-slate-500 font-mono">
-                  {{ filteredTenants.length }} / {{ tenants.length }}
-                </span>
+          <!-- LEFT COLUMN: Step 1 — Pilih Booth -->
+          <main class="p-4 lg:p-6 flex flex-col gap-5 min-w-0 pb-32 lg:pb-6">
+
+            <!-- Section header (desktop only) -->
+            <div class="hidden lg:flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-light-primary text-light-on-primary text-xs font-bold font-label flex-shrink-0">1</span>
+                <h2 class="font-display font-semibold text-light-on-surface text-base">Pilih Booth</h2>
               </div>
-
-              <!-- Quick Search & Category Filtering (Rendered when event has tenants) -->
-              <div v-if="tenants.length > 0 && !loadingTenants" class="space-y-2">
-                <!-- Search Input -->
-                <div class="relative">
-                  <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <input
-                    v-model="tenantSearchQuery"
-                    type="text"
-                    placeholder="Cari nama brand atau nomor booth..."
-                    class="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500/50 text-slate-100 placeholder-slate-500 rounded-xl pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                  <button
-                    v-if="tenantSearchQuery"
-                    type="button"
-                    @click="tenantSearchQuery = ''"
-                    class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
-                    title="Hapus pencarian"
-                  >
-                    <X class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <!-- Category Filter Pills (When 2+ distinct categories exist) -->
-                <div
-                  v-if="availableTenantCategories.length > 2"
-                  class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs"
-                >
-                  <button
-                    v-for="cat in availableTenantCategories"
-                    :key="cat"
-                    type="button"
-                    @click="selectedTenantCategory = cat"
-                    :class="selectedTenantCategory === cat
-                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm shadow-emerald-500/20 border-emerald-500'
-                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800 hover:border-slate-700'"
-                    class="px-3 py-1.5 rounded-xl border whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0"
-                  >
-                    {{ cat === 'ALL' ? 'Semua' : cat }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Loading Skeleton -->
-              <div v-if="loadingTenants" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div v-for="i in 6" :key="i" class="h-24 bg-slate-800 rounded-xl animate-pulse" />
-              </div>
-
-              <!-- Empty State: No Tenants in Event -->
-              <div v-else-if="tenants.length === 0" class="text-center py-10 text-slate-500 text-sm">
-                Tidak ada tenant untuk event ini.
-              </div>
-
-              <!-- Empty State: Filter Returned 0 Results -->
-              <div
-                v-else-if="filteredTenants.length === 0"
-                class="bg-slate-900/60 border border-slate-800/80 rounded-2xl py-10 px-4 text-center space-y-3"
+              <button
+                @click="drawerOpen = !drawerOpen"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface-variant text-xs font-label font-semibold transition-colors hover:bg-light-surface-container"
               >
-                <Search class="w-8 h-8 text-slate-600 mx-auto" />
-                <div class="space-y-1">
-                  <p class="text-sm font-semibold text-slate-300">Tidak ada tenant yang cocok dengan pencarian.</p>
-                  <p class="text-xs text-slate-500">Coba kata kunci lain atau reset filter kategori.</p>
+                <Clock class="w-3.5 h-3.5" />
+                <span>Riwayat Struk</span>
+                <span v-if="recentTransactions.length > 0" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-light-primary text-light-on-primary text-[10px] font-bold">
+                  {{ recentTransactions.length > 9 ? '9+' : recentTransactions.length }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Search + Category Pills -->
+            <div v-if="tenants.length > 0 && !loadingTenants" class="flex flex-col gap-3">
+              <!-- Search input -->
+              <div class="relative">
+                <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-light-on-surface-variant pointer-events-none" />
+                <input
+                  v-model="tenantSearchQuery"
+                  type="text"
+                  placeholder="Cari nama brand atau nomor booth..."
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant focus:border-light-primary text-light-on-surface placeholder-light-on-surface-variant rounded-md pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-all"
+                />
+                <button
+                  v-if="tenantSearchQuery"
+                  type="button"
+                  @click="tenantSearchQuery = ''"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-light-on-surface-variant hover:text-light-on-surface rounded-md transition-colors cursor-pointer"
+                  title="Hapus pencarian"
+                >
+                  <X class="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <!-- Category filter pills -->
+              <div
+                v-if="availableTenantCategories.length > 2"
+                class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5"
+              >
+                <button
+                  v-for="cat in availableTenantCategories"
+                  :key="cat"
+                  type="button"
+                  @click="selectedTenantCategory = cat"
+                  :class="selectedTenantCategory === cat
+                    ? 'bg-light-primary text-light-on-primary'
+                    : 'bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface-variant hover:bg-light-surface-container-low'"
+                  class="inline-flex items-center px-4 py-1.5 rounded-full font-label text-xs whitespace-nowrap transition-colors cursor-pointer shrink-0 active:scale-95"
+                >
+                  {{ cat === 'ALL' ? 'Semua' : cat }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading Skeleton -->
+            <div v-if="loadingTenants" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div v-for="i in 6" :key="i" class="h-28 bg-light-surface-container-high rounded-md animate-pulse" />
+            </div>
+
+            <!-- Empty: no tenants -->
+            <div v-else-if="tenants.length === 0" class="flex flex-col items-center justify-center py-12 gap-3 text-center">
+              <div class="w-12 h-12 rounded-full bg-light-surface-container-low border border-light-outline-variant flex items-center justify-center">
+                <Hash class="w-6 h-6 text-light-on-surface-variant" />
+              </div>
+              <p class="text-sm text-light-on-surface-variant">Tidak ada tenant untuk event ini.</p>
+            </div>
+
+            <!-- Empty: filter returns 0 -->
+            <div
+              v-else-if="filteredTenants.length === 0"
+              class="flex flex-col items-center justify-center py-12 gap-3 text-center border border-dashed border-light-outline-variant rounded-md bg-light-surface-container-low"
+            >
+              <Search class="w-8 h-8 text-light-on-surface-variant" />
+              <div class="space-y-1">
+                <p class="text-sm font-semibold text-light-on-surface">Tidak ada tenant yang cocok.</p>
+                <p class="text-xs text-light-on-surface-variant">Coba kata kunci lain atau reset filter.</p>
+              </div>
+              <button
+                type="button"
+                @click="tenantSearchQuery = ''; selectedTenantCategory = 'ALL'"
+                class="inline-flex items-center gap-1.5 bg-light-surface-container-lowest border border-light-outline-variant text-light-primary px-3.5 py-1.5 rounded-md text-xs font-label font-semibold transition-colors cursor-pointer hover:bg-light-surface-container-low"
+              >
+                <RefreshCw class="w-3 h-3" />
+                <span>Reset Filter</span>
+              </button>
+            </div>
+
+            <!-- Tenant Grid -->
+            <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <button
+                v-for="tenant in filteredTenants"
+                :key="tenant.id"
+                @click="openAddToCart(tenant)"
+                class="flex flex-col justify-between gap-3 p-4 rounded-md bg-light-surface-container-lowest border border-light-outline-variant hover:border-light-primary hover:bg-light-surface-container-low text-left transition-colors duration-150 active:scale-[0.98] cursor-pointer"
+              >
+                <div class="flex items-start justify-between gap-2">
+                  <span class="font-mono text-xs px-2 py-0.5 rounded-sm bg-light-surface-container text-light-on-surface tabular-nums">
+                    #{{ tenant.booth_number || '?' }}
+                  </span>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <span class="font-display font-semibold text-light-on-surface text-sm leading-tight line-clamp-2">{{ tenant.name }}</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-light-surface-container-low text-light-on-surface-variant text-[10px] font-label w-fit">
+                    {{ tenant.category || 'Umum' }}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </main>
+
+          <!-- RIGHT COLUMN: Step 2+3 — Cart & Payment (sticky on desktop) -->
+          <aside class="lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] lg:overflow-y-auto bg-light-surface-container-lowest border-t lg:border-t-0 lg:border-l border-light-outline-variant flex flex-col gap-0 pb-24 lg:pb-0">
+
+            <!-- Step 2: Cart -->
+            <div class="p-4 lg:p-5 flex flex-col gap-3 border-b border-light-outline-variant">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-light-primary text-light-on-primary text-xs font-bold font-label flex-shrink-0">2</span>
+                  <h3 class="font-display font-semibold text-light-on-surface text-sm">Daftar Belanja</h3>
+                  <span v-if="cart.length > 0" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-light-secondary-container text-light-on-secondary-container text-[10px] font-bold">{{ cart.length }}</span>
                 </div>
                 <button
+                  v-if="cart.length > 0"
                   type="button"
-                  @click="tenantSearchQuery = ''; selectedTenantCategory = 'ALL'"
-                  class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  @click="cart = []"
+                  class="text-xs text-light-error hover:underline font-label cursor-pointer"
                 >
-                  <RefreshCw class="w-3 h-3" />
-                  <span>Reset Filter</span>
+                  Kosongkan
                 </button>
               </div>
 
-              <!-- Filtered Tenant Grid -->
-              <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <button
-                  v-for="tenant in filteredTenants"
-                  :key="tenant.id"
-                  @click="openAddToCart(tenant)"
-                  class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 rounded-xl p-3 text-left transition-all duration-150 active:scale-95 flex flex-col gap-1.5 group cursor-pointer"
-                >
-                  <span class="inline-flex items-center gap-1 bg-slate-800 group-hover:bg-slate-700 rounded-lg px-2 py-0.5 text-xs font-mono text-amber-400 font-semibold w-fit">
-                    <Hash class="w-3 h-3" />{{ tenant.booth_number || '?' }}
-                  </span>
-                  <span class="font-semibold text-slate-100 text-sm leading-tight line-clamp-2">{{ tenant.name }}</span>
-                  <span class="text-xs text-slate-400">{{ tenant.category || 'Umum' }}</span>
-                </button>
-              </div>
-            </section>
-          </div>
-
-          <!-- Right Column: Cart & Checkout Payment (lg:col-span-5 lg:sticky lg:top-20) -->
-          <div class="lg:col-span-5 space-y-4 lg:sticky lg:top-20">
-            <!-- Cart Section -->
-            <section v-if="cart.length > 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-lg shadow-black/20">
-              <div class="flex items-center justify-between">
-                <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Keranjang</h2>
-                <span class="text-xs text-slate-500 font-mono">{{ cart.length }} item</span>
-              </div>
-
-              <!-- Cart Items -->
-              <div class="flex flex-col gap-2 max-h-56 sm:max-h-64 overflow-y-auto pr-1">
+              <!-- Cart items -->
+              <div v-if="cart.length > 0" class="flex flex-col gap-2 max-h-48 overflow-y-auto">
                 <div
                   v-for="(item, idx) in cart"
                   :key="idx"
-                  class="flex items-start gap-3 bg-slate-800/60 rounded-xl px-3 py-2.5"
+                  class="flex items-start justify-between gap-3 p-3 rounded-md bg-light-surface-container-low border border-light-outline-variant"
                 >
                   <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-slate-100 text-sm truncate">{{ item.tenantName }}</p>
-                    <p v-if="item.itemNote" class="text-xs text-slate-400 truncate">{{ item.itemNote }}</p>
+                    <div class="flex items-center gap-1.5 mb-0.5">
+                      <span class="font-mono text-[10px] px-1.5 py-0.5 rounded-sm bg-light-primary text-light-on-primary tabular-nums">
+                        #{{ tenants.find(t => t.id === item.tenantId)?.booth_number || '?' }}
+                      </span>
+                    </div>
+                    <p class="font-semibold text-light-on-surface text-sm truncate">{{ item.tenantName }}</p>
+                    <p v-if="item.itemNote" class="text-xs text-light-on-surface-variant truncate">{{ item.itemNote }}</p>
                   </div>
                   <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="text-emerald-400 font-semibold text-sm">{{ formatRupiah(item.grossAmount) }}</span>
+                    <span class="font-mono text-sm tabular-nums text-light-on-surface font-semibold">{{ formatRupiah(item.grossAmount) }}</span>
                     <button
                       @click="removeFromCart(idx)"
-                      class="text-slate-500 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-400/10 cursor-pointer"
+                      class="text-light-on-surface-variant hover:text-light-error transition-colors p-1 rounded-md hover:bg-light-error-container cursor-pointer"
                     >
                       <X class="w-4 h-4" />
                     </button>
@@ -226,357 +243,341 @@
                 </div>
               </div>
 
-              <!-- Cart Total -->
-              <div class="border-t border-slate-800 pt-3 flex items-center justify-between">
-                <span class="text-slate-400 font-medium">Total</span>
-                <span class="text-2xl font-bold text-emerald-400">{{ formatRupiah(cartTotal) }}</span>
+              <!-- Empty cart -->
+              <div v-else class="flex flex-col items-center justify-center text-center gap-2 p-6 rounded-md bg-light-surface-container-low border border-dashed border-light-outline-variant">
+                <ShoppingCart class="w-8 h-8 text-light-on-surface-variant" />
+                <p class="text-xs text-light-on-surface-variant">Pilih booth untuk menambah item ke keranjang</p>
               </div>
-            </section>
 
-            <!-- Empty Cart Hint -->
-            <section v-else class="bg-slate-900/50 border border-dashed border-slate-800 rounded-2xl p-6 text-center text-slate-600 text-sm">
-              <ShoppingCart class="w-8 h-8 mx-auto mb-2 text-slate-700" />
-              Tap tenant untuk menambah item ke keranjang
-            </section>
+              <!-- Cart total -->
+              <div v-if="cart.length > 0" class="flex items-center justify-between pt-2 border-t border-light-outline-variant">
+                <span class="text-sm text-light-on-surface-variant font-label">Total</span>
+                <span class="font-mono text-xl font-bold text-light-primary tabular-nums">{{ formatRupiah(cartTotal) }}</span>
+              </div>
+            </div>
 
-            <!-- Checkout Section -->
-            <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-4 shadow-lg shadow-black/20">
-              <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Pembayaran</h2>
+            <!-- Step 3: Payment -->
+            <div class="p-4 lg:p-5 flex flex-col gap-4 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-light-primary text-light-on-primary text-xs font-bold font-label flex-shrink-0">3</span>
+                <h3 class="font-display font-semibold text-light-on-surface text-sm">Pembayaran</h3>
+              </div>
 
-              <!-- Payment Method Toggle -->
-              <div class="flex gap-2">
+              <!-- Payment method toggle -->
+              <div class="grid grid-cols-2 gap-1 p-1 rounded-md bg-light-surface-container">
                 <button
                   @click="paymentMethod = 'QRIS'"
-                  :class="[
-                    'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer',
-                    paymentMethod === 'QRIS'
-                      ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  ]"
+                  :class="paymentMethod === 'QRIS'
+                    ? 'bg-light-surface-container-lowest text-light-primary border border-light-outline-variant shadow-sm'
+                    : 'text-light-on-surface-variant hover:bg-light-surface-container-low'"
+                  class="flex items-center justify-center gap-2 py-2 rounded-md font-label text-sm font-semibold transition-colors cursor-pointer"
                 >
                   <Smartphone class="w-4 h-4" />
                   QRIS
                 </button>
                 <button
                   @click="paymentMethod = 'CASH'"
-                  :class="[
-                    'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer',
-                    paymentMethod === 'CASH'
-                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  ]"
+                  :class="paymentMethod === 'CASH'
+                    ? 'bg-light-surface-container-lowest text-light-primary border border-light-outline-variant shadow-sm'
+                    : 'text-light-on-surface-variant hover:bg-light-surface-container-low'"
+                  class="flex items-center justify-center gap-2 py-2 rounded-md font-label text-sm font-semibold transition-colors cursor-pointer"
                 >
                   <Banknote class="w-4 h-4" />
-                  CASH
+                  Tunai
                 </button>
               </div>
 
-              <!-- Cash Tendered & Change Panel (When CASH is selected) -->
-              <div v-if="paymentMethod === 'CASH'" class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3.5 space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Banknote class="w-4 h-4 text-emerald-400" />
-                    Uang Diterima (Cash Tendered)
-                  </span>
-                  <button
-                    type="button"
-                    @click="setExactCash"
-                    class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg px-2.5 py-1 transition-colors cursor-pointer touch-manipulation select-none"
-                  >
-                    Uang Pas
-                  </button>
+              <!-- QRIS panel -->
+              <div v-if="paymentMethod === 'QRIS'" class="flex flex-col items-center text-center gap-3 p-5 rounded-md bg-light-surface-container-low border border-light-outline-variant">
+                <Smartphone class="w-10 h-10 text-light-on-surface-variant" />
+                <div class="space-y-1">
+                  <p class="font-label font-semibold text-light-on-surface text-sm">Bayar via QRIS</p>
+                  <p class="text-xs text-light-on-surface-variant">Arahkan kamera ke QR code di mesin kasir atau tunjukkan ke pembeli.</p>
                 </div>
+              </div>
 
-                <!-- Input -->
-                <div class="relative">
-                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">Rp</span>
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    :value="cashTenderedDisplay"
-                    @input="handleCashTenderedInput"
-                    :placeholder="cartTotal > 0 ? Number(cartTotal).toLocaleString('id-ID') + ' (Uang Pas)' : '0'"
-                    class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl pl-11 pr-10 py-2.5 text-base font-bold text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
-                  />
-                  <button
-                    v-if="cashTendered"
-                    @click="cashTendered = null; cashTenderedDisplay = ''"
-                    type="button"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
-                  >
-                    <X class="w-4 h-4" />
-                  </button>
-                </div>
-
-                <!-- Denomination Chips -->
-                <div class="grid grid-cols-4 gap-1.5">
+              <!-- CASH panel -->
+              <div v-if="paymentMethod === 'CASH'" class="flex flex-col gap-3">
+                <!-- Denomination chips -->
+                <div class="grid grid-cols-4 gap-2">
                   <button
                     v-for="chip in [50000, 100000, 200000, 500000]"
                     :key="chip"
                     type="button"
                     @click="addCashTenderedChip(chip)"
-                    class="py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white transition-all active:scale-95 cursor-pointer touch-manipulation select-none"
+                    class="py-1.5 rounded-sm bg-light-surface-container-low border border-light-outline-variant font-mono text-xs tabular-nums text-light-on-surface hover:border-light-primary hover:bg-light-surface-container transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
                   >
                     +{{ chip >= 1000 ? (chip / 1000) + 'k' : chip }}
                   </button>
                 </div>
 
-                <!-- Kembalian / Shortage Row -->
-                <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                  <span class="text-slate-400 font-medium">Kembalian:</span>
-                  <div v-if="isCashInsufficient" class="flex items-center gap-1.5 text-rose-400 font-semibold animate-pulse">
-                    <AlertCircle class="w-3.5 h-3.5" />
-                    <span>Kurang {{ formatRupiah(cashShortage) }}</span>
-                  </div>
-                  <div v-else class="text-right">
-                    <span class="font-bold text-base text-emerald-400">
-                      {{ formatRupiah(cashChange) }}
-                    </span>
-                    <span v-if="!cashTendered || cashTendered === cartTotal" class="text-[11px] text-slate-500 block">
-                      (Uang Pas)
-                    </span>
-                  </div>
-                </div>
-              </div>
+                <!-- "Uang Pas" chip -->
+                <button
+                  type="button"
+                  @click="setExactCash"
+                  class="w-full py-1.5 rounded-sm bg-light-surface-container-low border border-light-outline-variant font-mono text-xs tabular-nums text-light-primary hover:border-light-primary hover:bg-light-primary/5 transition-colors cursor-pointer touch-manipulation select-none"
+                >
+                  Uang Pas ({{ formatRupiah(cartTotal) }})
+                </button>
 
-              <!-- Receipt Code -->
-              <div class="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-3">
-                <div>
-                  <span class="text-slate-300 text-sm font-semibold block">Kode Struk</span>
-                  <span class="text-[11px] text-slate-500">Nomor urut otomatis dibuat oleh sistem saat bayar</span>
+                <!-- Input uang diterima -->
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-light-on-surface-variant">Rp</span>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    :value="cashTenderedDisplay"
+                    @input="handleCashTenderedInput"
+                    :placeholder="cartTotal > 0 ? Number(cartTotal).toLocaleString('id-ID') : '0'"
+                    class="w-full bg-light-surface-container-lowest border border-light-outline-variant focus:border-light-primary rounded-md pl-10 pr-9 py-2.5 text-base font-mono font-bold text-light-on-surface tabular-nums placeholder-light-on-surface-variant focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-colors"
+                  />
+                  <button
+                    v-if="cashTendered"
+                    @click="cashTendered = null; cashTenderedDisplay = ''"
+                    type="button"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-light-on-surface-variant hover:text-light-on-surface cursor-pointer"
+                  >
+                    <X class="w-4 h-4" />
+                  </button>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="font-mono font-bold text-amber-400 tracking-wider text-xs bg-slate-900 border border-slate-700 px-2.5 py-1 rounded-lg">
-                    AUTO (#)
+
+                <!-- Change box -->
+                <div
+                  :class="isCashInsufficient
+                    ? 'bg-light-error-container border-light-error'
+                    : 'bg-light-secondary-container border-light-primary'"
+                  class="flex items-center justify-between gap-3 p-3 rounded-md border"
+                >
+                  <span class="text-xs font-label font-semibold text-light-on-surface">Kembalian</span>
+                  <div v-if="isCashInsufficient" class="flex items-center gap-1.5 text-light-error font-semibold text-sm animate-pulse">
+                    <AlertCircle class="w-4 h-4" />
+                    <span class="font-mono tabular-nums">Kurang {{ formatRupiah(cashShortage) }}</span>
+                  </div>
+                  <span v-else class="font-mono text-lg font-bold text-light-primary tabular-nums">
+                    {{ formatRupiah(cashChange) }}
                   </span>
                 </div>
               </div>
 
-              <!-- Process Button -->
+              <!-- Receipt badge -->
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-light-surface-container-low border border-light-outline-variant font-mono text-xs tabular-nums text-light-on-surface-variant">
+                  <Receipt class="w-3.5 h-3.5" />
+                  Nomor Struk: AUTO (#)
+                </span>
+              </div>
+
+              <!-- CTA: Process payment -->
               <button
                 @click="processPayment"
                 :disabled="cart.length === 0 || processingPayment || !selectedEventId || isCashInsufficient"
-                class="w-full py-4 rounded-xl font-semibold text-base transition-all duration-150 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
+                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-md bg-light-primary text-light-on-primary font-label font-semibold text-base hover:opacity-90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 cursor-pointer shadow-sm shadow-light-primary/20"
               >
                 <Loader2 v-if="processingPayment" class="w-5 h-5 animate-spin" />
                 <CreditCard v-else class="w-5 h-5" />
                 {{ processingPayment ? 'Memproses…' : 'Proses Pembayaran' }}
               </button>
-            </section>
-          </div>
-
+            </div>
+          </aside>
         </div>
       </template>
-    </main>
+    </div>
 
-    <!-- Recent Transactions Drawer Toggle -->
+    <!-- Recent Transactions Drawer (bottom, full-width) -->
     <div class="fixed bottom-0 left-0 right-0 z-40" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
-      <div class="max-w-2xl lg:max-w-4xl mx-auto">
-        <!-- Toggle Button -->
-        <button
-          @click="drawerOpen = !drawerOpen"
-          class="w-full bg-slate-900 border-t border-slate-800 px-4 py-3 flex items-center justify-between hover:bg-slate-800 transition-colors cursor-pointer"
-        >
-          <div class="flex items-center gap-2">
-            <Clock class="w-4 h-4 text-slate-400" />
-            <span class="text-sm font-semibold text-slate-300">Transaksi Terbaru</span>
-            <span v-if="recentTransactions.length > 0" class="bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full px-2 py-0.5">
-              <span v-if="txSearchQuery || txStatusFilter !== 'ALL'">
-                {{ filteredRecentTransactions.length }} / {{ recentTransactions.length }}
-              </span>
-              <span v-else>
-                {{ recentTransactions.length }}
-              </span>
+      <!-- Toggle Button -->
+      <button
+        @click="drawerOpen = !drawerOpen"
+        class="hidden lg:flex w-full bg-light-surface-container-lowest border-t border-light-outline-variant px-5 py-3 items-center justify-between hover:bg-light-surface-container-low transition-colors cursor-pointer"
+      >
+        <div class="flex items-center gap-2">
+          <Clock class="w-4 h-4 text-light-on-surface-variant" />
+          <span class="text-sm font-label font-semibold text-light-on-surface">Transaksi Terbaru</span>
+          <span v-if="recentTransactions.length > 0" class="bg-light-secondary-container text-light-on-secondary-container text-xs font-semibold rounded-full px-2 py-0.5">
+            <span v-if="txSearchQuery || txStatusFilter !== 'ALL'">
+              {{ filteredRecentTransactions.length }} / {{ recentTransactions.length }}
             </span>
-          </div>
-          <ChevronUp :class="['w-4 h-4 text-slate-400 transition-transform duration-200', drawerOpen ? 'rotate-180' : '']" />
-        </button>
+            <span v-else>{{ recentTransactions.length }}</span>
+          </span>
+        </div>
+        <ChevronUp :class="['w-4 h-4 text-light-on-surface-variant transition-transform duration-200', drawerOpen ? 'rotate-180' : '']" />
+      </button>
 
-        <!-- Drawer Content -->
-        <Transition name="drawer">
-          <div v-if="drawerOpen" class="bg-slate-900 border-t border-slate-800 max-h-[30rem] flex flex-col">
-            <!-- Filter Bar inside Drawer (when transactions exist) -->
-            <div
-              v-if="selectedEventId && recentTransactions.length > 0"
-              class="p-3 bg-slate-900/95 border-b border-slate-800 sticky top-0 z-10 space-y-2 backdrop-blur-sm"
-            >
-              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                <!-- Search Input -->
-                <div class="relative flex-1 min-w-[180px]">
-                  <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <input
-                    v-model="txSearchQuery"
-                    type="text"
-                    placeholder="Cari kode struk atau nama tenant..."
-                    class="w-full bg-slate-800 border border-slate-700 focus:border-sky-500/50 text-slate-100 placeholder-slate-500 rounded-xl pl-8 pr-8 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
-                  />
-                  <button
-                    v-if="txSearchQuery"
-                    type="button"
-                    @click="txSearchQuery = ''"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded-md cursor-pointer"
-                    title="Hapus pencarian"
-                  >
-                    <X class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <!-- Status Filter Pills -->
-                <div class="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    @click="txStatusFilter = 'ALL'"
-                    :class="txStatusFilter === 'ALL'
-                      ? 'bg-slate-700 text-white font-bold border-slate-600'
-                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 border-slate-700/80'"
-                    class="px-2.5 py-1 rounded-lg text-[11px] border font-medium transition-colors cursor-pointer"
-                  >
-                    Semua
-                  </button>
-                  <button
-                    type="button"
-                    @click="txStatusFilter = 'COMPLETED'"
-                    :class="txStatusFilter === 'COMPLETED'
-                      ? 'bg-emerald-500/20 text-emerald-400 font-bold border-emerald-500/40'
-                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 border-slate-700/80'"
-                    class="px-2.5 py-1 rounded-lg text-[11px] border font-medium transition-colors cursor-pointer"
-                  >
-                    Completed
-                  </button>
-                  <button
-                    type="button"
-                    @click="txStatusFilter = 'VOID'"
-                    :class="txStatusFilter === 'VOID'
-                      ? 'bg-rose-500/20 text-rose-400 font-bold border-rose-500/40'
-                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 border-slate-700/80'"
-                    class="px-2.5 py-1 rounded-lg text-[11px] border font-medium transition-colors cursor-pointer"
-                  >
-                    Void
-                  </button>
-                </div>
+      <!-- Drawer Content -->
+      <Transition name="drawer">
+        <div v-if="drawerOpen" class="bg-light-surface-container-lowest border-t border-light-outline-variant max-h-[32rem] flex flex-col">
+          <!-- Filter Bar -->
+          <div
+            v-if="selectedEventId && recentTransactions.length > 0"
+            class="p-3 border-b border-light-outline-variant sticky top-0 z-10 bg-light-surface-container-lowest"
+          >
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <!-- Search -->
+              <div class="relative flex-1 min-w-[180px]">
+                <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-light-on-surface-variant pointer-events-none" />
+                <input
+                  v-model="txSearchQuery"
+                  type="text"
+                  placeholder="Cari kode struk atau nama tenant..."
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-primary text-light-on-surface placeholder-light-on-surface-variant rounded-md pl-8 pr-8 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-all"
+                />
+                <button
+                  v-if="txSearchQuery"
+                  type="button"
+                  @click="txSearchQuery = ''"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-light-on-surface-variant hover:text-light-on-surface rounded-md cursor-pointer"
+                >
+                  <X class="w-3.5 h-3.5" />
+                </button>
               </div>
-            </div>
-
-            <!-- Scrollable Transaction List -->
-            <div class="overflow-y-auto flex-1 divide-y divide-slate-800">
-              <div v-if="loadingTransactions" class="p-6 text-center text-slate-500 text-sm">
-                <Loader2 class="w-5 h-5 animate-spin mx-auto mb-2" />
-                Memuat transaksi…
-              </div>
-              <div v-else-if="!selectedEventId" class="p-6 text-center text-slate-600 text-sm">
-                Pilih event untuk melihat transaksi.
-              </div>
-              <div v-else-if="recentTransactions.length === 0" class="p-6 text-center text-slate-600 text-sm">
-                Belum ada transaksi.
-              </div>
-              <div
-                v-else-if="filteredRecentTransactions.length === 0"
-                class="p-8 text-center text-slate-500 text-xs space-y-2"
-              >
-                <Search class="w-6 h-6 text-slate-600 mx-auto" />
-                <p class="font-medium text-slate-400">Tidak ada transaksi yang cocok.</p>
+              <!-- Status filter pills -->
+              <div class="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
-                  @click="txSearchQuery = ''; txStatusFilter = 'ALL'"
-                  class="inline-flex items-center gap-1 text-sky-400 hover:underline cursor-pointer"
-                >
-                  <RefreshCw class="w-3 h-3" />
-                  <span>Reset filter transaksi</span>
-                </button>
-              </div>
-              <div
-                v-else
-                v-for="tx in filteredRecentTransactions"
-                :key="tx.id"
-                class="px-4 py-3 flex items-start gap-3 hover:bg-slate-800/40 transition-colors"
-              >
-                <div class="flex-1 min-w-0 space-y-2">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <button
-                      @click="openReceiptModalFromRecent(tx)"
-                      class="inline-flex items-center gap-1 font-mono text-sm font-bold text-sky-400 hover:text-sky-300 hover:underline cursor-pointer"
-                      title="Lihat Struk Digital"
-                    >
-                      <Receipt class="w-3.5 h-3.5" />
-                      {{ tx.receipt_code }}
-                    </button>
-                    <span :class="[
-                      'text-xs font-semibold rounded-full px-2 py-0.5',
-                      tx.payment_method === 'QRIS' ? 'bg-sky-500/20 text-sky-400' : 'bg-emerald-500/20 text-emerald-400'
-                    ]">{{ tx.payment_method }}</span>
-                    <span :class="[
-                      'text-xs font-semibold rounded-full px-2 py-0.5',
-                      tx.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
-                    ]">{{ tx.status }}</span>
-                    <span v-if="tx.void_reason" class="text-[11px] text-red-400 italic">
-                      ({{ tx.void_reason }})
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-2 text-xs flex-wrap">
-                    <span class="text-sm font-bold text-emerald-400">{{ formatRupiah(tx.total_amount) }}</span>
-                    <span class="text-slate-500">•</span>
-                    <span class="text-slate-500">{{ formatDate(tx.created_at) }}</span>
-                    <span v-if="tx.payment_method === 'CASH' && tx.cash_tendered" class="text-slate-400 font-mono text-[11px]">
-                      • Tunai: {{ formatRupiah(tx.cash_tendered) }} (Kembali: {{ formatRupiah(tx.change_amount || 0) }})
-                    </span>
-                    <span v-if="tx.transaction_items?.length" class="text-slate-500">
-                      • {{ tx.transaction_items.length }} item{{ tx.transaction_items.length > 1 ? 's' : '' }}
-                    </span>
-                  </div>
-
-                  <!-- Item Breakdown List -->
-                  <div
-                    v-if="tx.transaction_items && tx.transaction_items.length > 0"
-                    class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 space-y-1.5"
-                  >
-                    <div
-                      v-for="item in tx.transaction_items"
-                      :key="item.id"
-                      class="flex items-start justify-between gap-2 text-xs"
-                    >
-                      <div class="flex-1 min-w-0">
-                        <span class="font-medium text-slate-300">
-                          {{ item.tenants?.name || 'Tenant' }}
-                          <span v-if="item.tenants?.booth_number" class="text-slate-500 font-mono text-[11px]">
-                            ({{ item.tenants.booth_number }})
-                          </span>
-                        </span>
-                        <p v-if="item.item_note" class="text-[11px] text-slate-400 italic truncate">
-                          {{ item.item_note }}
-                        </p>
-                      </div>
-                      <span class="font-mono font-medium text-slate-200 shrink-0">
-                        {{ formatRupiah(item.gross_amount) }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  @click="txStatusFilter = 'ALL'"
+                  :class="txStatusFilter === 'ALL'
+                    ? 'bg-light-surface-container text-light-on-surface font-bold border-light-outline'
+                    : 'bg-light-surface-container-low hover:bg-light-surface-container text-light-on-surface-variant border-light-outline-variant'"
+                  class="px-2.5 py-1 rounded-md text-[11px] border font-label font-medium transition-colors cursor-pointer"
+                >Semua</button>
                 <button
-                  v-if="tx.status === 'COMPLETED'"
-                  @click="openVoidModal(tx)"
-                  class="flex-shrink-0 text-xs font-semibold text-red-400 border border-red-400/30 hover:bg-red-400/10 rounded-lg px-2.5 py-1 transition-colors cursor-pointer mt-0.5"
-                >
-                  VOID
-                </button>
+                  type="button"
+                  @click="txStatusFilter = 'COMPLETED'"
+                  :class="txStatusFilter === 'COMPLETED'
+                    ? 'bg-light-secondary-container text-light-on-secondary-container font-bold border-light-secondary'
+                    : 'bg-light-surface-container-low hover:bg-light-surface-container text-light-on-surface-variant border-light-outline-variant'"
+                  class="px-2.5 py-1 rounded-md text-[11px] border font-label font-medium transition-colors cursor-pointer"
+                >Completed</button>
+                <button
+                  type="button"
+                  @click="txStatusFilter = 'VOID'"
+                  :class="txStatusFilter === 'VOID'
+                    ? 'bg-light-error-container text-light-error font-bold border-light-error'
+                    : 'bg-light-surface-container-low hover:bg-light-surface-container text-light-on-surface-variant border-light-outline-variant'"
+                  class="px-2.5 py-1 rounded-md text-[11px] border font-label font-medium transition-colors cursor-pointer"
+                >Void</button>
               </div>
             </div>
           </div>
-        </Transition>
-      </div>
+
+          <!-- Transaction list -->
+          <div class="overflow-y-auto flex-1 divide-y divide-light-outline-variant">
+            <div v-if="loadingTransactions" class="p-6 text-center text-light-on-surface-variant text-sm">
+              <Loader2 class="w-5 h-5 animate-spin mx-auto mb-2" />
+              Memuat transaksi…
+            </div>
+            <div v-else-if="!selectedEventId" class="p-6 text-center text-light-on-surface-variant text-sm">
+              Pilih event untuk melihat transaksi.
+            </div>
+            <div v-else-if="recentTransactions.length === 0" class="p-6 text-center text-light-on-surface-variant text-sm">
+              Belum ada transaksi.
+            </div>
+            <div
+              v-else-if="filteredRecentTransactions.length === 0"
+              class="p-8 text-center text-light-on-surface-variant text-xs space-y-2"
+            >
+              <Search class="w-6 h-6 text-light-on-surface-variant mx-auto" />
+              <p class="font-label font-medium text-light-on-surface">Tidak ada transaksi yang cocok.</p>
+              <button
+                type="button"
+                @click="txSearchQuery = ''; txStatusFilter = 'ALL'"
+                class="inline-flex items-center gap-1 text-light-primary hover:underline cursor-pointer text-xs"
+              >
+                <RefreshCw class="w-3 h-3" />
+                <span>Reset filter</span>
+              </button>
+            </div>
+            <div
+              v-else
+              v-for="tx in filteredRecentTransactions"
+              :key="tx.id"
+              class="px-4 py-3 flex items-start gap-3 hover:bg-light-surface-container-low transition-colors"
+            >
+              <div class="flex-1 min-w-0 space-y-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button
+                    @click="openReceiptModalFromRecent(tx)"
+                    class="inline-flex items-center gap-1 font-mono text-sm font-bold text-light-primary hover:underline cursor-pointer tabular-nums"
+                    title="Lihat Struk Digital"
+                  >
+                    <Receipt class="w-3.5 h-3.5" />
+                    {{ tx.receipt_code }}
+                  </button>
+                  <span :class="[
+                    'text-xs font-label font-semibold rounded-full px-2 py-0.5',
+                    tx.payment_method === 'QRIS'
+                      ? 'bg-light-surface-container text-light-on-surface-variant'
+                      : 'bg-light-secondary-container text-light-on-secondary-container'
+                  ]">{{ tx.payment_method }}</span>
+                  <span :class="[
+                    'text-xs font-label font-semibold rounded-full px-2 py-0.5',
+                    tx.status === 'COMPLETED'
+                      ? 'bg-light-secondary-container text-light-on-secondary-container'
+                      : 'bg-light-error-container text-light-error'
+                  ]">{{ tx.status }}</span>
+                  <span v-if="tx.void_reason" class="text-[11px] text-light-error italic">({{ tx.void_reason }})</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs flex-wrap">
+                  <span class="font-mono font-bold text-light-primary tabular-nums">{{ formatRupiah(tx.total_amount) }}</span>
+                  <span class="text-light-on-surface-variant">•</span>
+                  <span class="text-light-on-surface-variant">{{ formatDate(tx.created_at) }}</span>
+                  <span v-if="tx.payment_method === 'CASH' && tx.cash_tendered" class="text-light-on-surface-variant font-mono text-[11px] tabular-nums">
+                    • Tunai: {{ formatRupiah(tx.cash_tendered) }} (Kembali: {{ formatRupiah(tx.change_amount || 0) }})
+                  </span>
+                  <span v-if="tx.transaction_items?.length" class="text-light-on-surface-variant">
+                    • {{ tx.transaction_items.length }} item{{ tx.transaction_items.length > 1 ? 's' : '' }}
+                  </span>
+                </div>
+                <!-- Item breakdown -->
+                <div
+                  v-if="tx.transaction_items && tx.transaction_items.length > 0"
+                  class="bg-light-surface-container-low border border-light-outline-variant rounded-md p-2.5 space-y-1.5"
+                >
+                  <div
+                    v-for="item in tx.transaction_items"
+                    :key="item.id"
+                    class="flex items-start justify-between gap-2 text-xs"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <span class="font-label font-medium text-light-on-surface">
+                        {{ item.tenants?.name || 'Tenant' }}
+                        <span v-if="item.tenants?.booth_number" class="text-light-on-surface-variant font-mono text-[11px] tabular-nums">
+                          ({{ item.tenants.booth_number }})
+                        </span>
+                      </span>
+                      <p v-if="item.item_note" class="text-[11px] text-light-on-surface-variant italic truncate">{{ item.item_note }}</p>
+                    </div>
+                    <span class="font-mono font-medium text-light-on-surface shrink-0 tabular-nums">
+                      {{ formatRupiah(item.gross_amount) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                v-if="tx.status === 'COMPLETED'"
+                @click="openVoidModal(tx)"
+                class="flex-shrink-0 text-xs font-label font-semibold text-light-error border border-light-error/30 hover:bg-light-error-container rounded-md px-2.5 py-1 transition-colors cursor-pointer mt-0.5"
+              >
+                VOID
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <!-- Add to Cart Modal -->
     <Transition name="modal">
       <div v-if="addToCartModal.open" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeAddToCart" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl z-10">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-xl w-full max-w-sm shadow-2xl z-10">
           <!-- Modal Header -->
-          <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
+          <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-light-outline-variant">
             <div>
-              <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Tambah ke Keranjang</p>
-              <h3 class="font-bold text-slate-100 mt-0.5">{{ addToCartModal.tenant?.name }}</h3>
+              <p class="text-xs text-light-on-surface-variant uppercase tracking-widest font-label font-semibold">Tambah ke Keranjang</p>
+              <h3 class="font-display font-bold text-light-on-surface mt-0.5">{{ addToCartModal.tenant?.name }}</h3>
             </div>
-            <button @click="closeAddToCart" class="text-slate-500 hover:text-slate-300 p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <button @click="closeAddToCart" class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-md hover:bg-light-surface-container-low transition-colors">
               <X class="w-5 h-5" />
             </button>
           </div>
@@ -584,72 +585,57 @@
           <!-- Modal Body -->
           <div class="p-5 flex flex-col gap-4">
             <!-- Booth info -->
-            <div class="flex items-center justify-between text-xs text-slate-400 flex-wrap gap-2">
+            <div class="flex items-center justify-between text-xs flex-wrap gap-2">
               <div class="flex items-center gap-2">
-                <span class="bg-slate-800 rounded-lg px-2 py-0.5 font-mono text-amber-400 font-semibold">
+                <span class="bg-light-surface-container rounded-md px-2 py-0.5 font-mono text-light-primary font-semibold tabular-nums">
                   #{{ addToCartModal.tenant?.booth_number || '?' }}
                 </span>
-                <span>{{ addToCartModal.tenant?.category || 'Umum' }}</span>
+                <span class="text-light-on-surface-variant font-label">{{ addToCartModal.tenant?.category || 'Umum' }}</span>
               </div>
-              <div class="text-[11px] font-medium bg-slate-800/80 rounded-lg px-2 py-1 border border-slate-700/60">
-                Split: <span class="text-violet-400 font-semibold">Venue {{ addToCartModal.tenant?.venue_share_percent ?? 10 }}%</span>
-                <span class="text-slate-500 mx-1">•</span>
-                <span class="text-amber-400 font-semibold">EO {{ addToCartModal.tenant?.organizer_share_percent ?? 0 }}%</span>
-                <span class="text-slate-500 mx-1">•</span>
-                <span class="text-emerald-400 font-semibold">Tenant {{ Math.max(0, 100 - (Number(addToCartModal.tenant?.venue_share_percent ?? 10) + Number(addToCartModal.tenant?.organizer_share_percent ?? 0))) }}%</span>
+              <div class="text-[11px] font-label bg-light-surface-container-low rounded-md px-2 py-1 border border-light-outline-variant">
+                Split: <span class="text-light-tertiary font-semibold">Venue {{ addToCartModal.tenant?.venue_share_percent ?? 10 }}%</span>
+                <span class="text-light-on-surface-variant mx-1">•</span>
+                <span class="text-light-warning font-semibold">EO {{ addToCartModal.tenant?.organizer_share_percent ?? 0 }}%</span>
+                <span class="text-light-on-surface-variant mx-1">•</span>
+                <span class="text-light-primary font-semibold">Tenant {{ Math.max(0, 100 - (Number(addToCartModal.tenant?.venue_share_percent ?? 10) + Number(addToCartModal.tenant?.organizer_share_percent ?? 0))) }}%</span>
               </div>
             </div>
 
             <!-- Amount Input -->
             <div>
-              <label class="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2 block">Jumlah (Rp)</label>
+              <label class="text-xs text-light-on-surface-variant uppercase tracking-widest font-label font-semibold mb-2 block">Jumlah (Rp)</label>
               <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-lg pointer-events-none">Rp</span>
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-on-surface-variant font-semibold text-lg pointer-events-none">Rp</span>
                 <input
                   :value="addToCartModal.displayAmount"
                   @input="handleAmountInput"
                   type="text"
                   inputmode="numeric"
                   placeholder="0"
-                  class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-slate-100 placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors rupiah"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-primary rounded-md pl-12 pr-4 py-3 text-2xl font-mono font-bold text-light-on-surface tabular-nums placeholder-light-on-surface-variant focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-colors"
                 />
               </div>
 
               <!-- Quick Add Chips -->
               <div class="flex items-center gap-1.5 flex-wrap mt-2.5">
-                <button
-                  type="button"
-                  @click="addQuickAmount(10000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
-                >
+                <button type="button" @click="addQuickAmount(10000)"
+                  class="px-2.5 py-1 text-xs font-mono font-semibold rounded-md bg-light-surface-container-low border border-light-outline-variant hover:border-light-primary text-light-on-surface transition-colors active:scale-95 cursor-pointer touch-manipulation select-none tabular-nums">
                   +10.000
                 </button>
-                <button
-                  type="button"
-                  @click="addQuickAmount(25000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
-                >
+                <button type="button" @click="addQuickAmount(25000)"
+                  class="px-2.5 py-1 text-xs font-mono font-semibold rounded-md bg-light-surface-container-low border border-light-outline-variant hover:border-light-primary text-light-on-surface transition-colors active:scale-95 cursor-pointer touch-manipulation select-none tabular-nums">
                   +25.000
                 </button>
-                <button
-                  type="button"
-                  @click="addQuickAmount(50000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
-                >
+                <button type="button" @click="addQuickAmount(50000)"
+                  class="px-2.5 py-1 text-xs font-mono font-semibold rounded-md bg-light-surface-container-low border border-light-outline-variant hover:border-light-primary text-light-on-surface transition-colors active:scale-95 cursor-pointer touch-manipulation select-none tabular-nums">
                   +50.000
                 </button>
-                <button
-                  type="button"
-                  @click="addQuickAmount(100000)"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors active:scale-95 cursor-pointer touch-manipulation select-none"
-                >
+                <button type="button" @click="addQuickAmount(100000)"
+                  class="px-2.5 py-1 text-xs font-mono font-semibold rounded-md bg-light-surface-container-low border border-light-outline-variant hover:border-light-primary text-light-on-surface transition-colors active:scale-95 cursor-pointer touch-manipulation select-none tabular-nums">
                   +100.000
                 </button>
-                <button
-                  type="button"
-                  @click="clearAmount"
-                  class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors active:scale-95 ml-auto cursor-pointer touch-manipulation select-none"
-                >
+                <button type="button" @click="clearAmount"
+                  class="px-2.5 py-1 text-xs font-label font-semibold rounded-md bg-light-error-container text-light-error border border-light-error/30 hover:opacity-80 transition-colors active:scale-95 ml-auto cursor-pointer touch-manipulation select-none">
                   Clear
                 </button>
               </div>
@@ -657,12 +643,12 @@
 
             <!-- Note Input -->
             <div>
-              <label class="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2 block">Catatan (Opsional)</label>
+              <label class="text-xs text-light-on-surface-variant uppercase tracking-widest font-label font-semibold mb-2 block">Catatan (Opsional)</label>
               <input
                 v-model="addToCartModal.note"
                 type="text"
                 placeholder="e.g. Nasi Goreng x2"
-                class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
+                class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-primary rounded-md px-4 py-2.5 text-sm text-light-on-surface placeholder-light-on-surface-variant focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-colors"
               />
             </div>
 
@@ -670,7 +656,7 @@
             <button
               @click="addToCart"
               :disabled="!addToCartModal.amount || addToCartModal.amount <= 0"
-              class="w-full py-3.5 rounded-xl font-semibold text-sm bg-emerald-500 hover:bg-emerald-400 text-white transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2"
+              class="w-full py-3.5 rounded-md font-label font-semibold text-sm bg-light-primary text-light-on-primary transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2 hover:opacity-90"
             >
               <Plus class="w-4 h-4" />
               Tambah ke Keranjang
@@ -684,30 +670,30 @@
     <Transition name="modal">
       <div v-if="voidModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeVoidModal" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl z-10">
-          <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
-            <div class="flex items-center gap-2 text-rose-400">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-xl w-full max-w-sm shadow-2xl z-10">
+          <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-light-outline-variant">
+            <div class="flex items-center gap-2 text-light-error">
               <AlertTriangle class="w-5 h-5 flex-shrink-0" />
               <div>
-                <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Otorisasi Void Transaksi</p>
-                <h3 class="font-bold text-slate-100 mt-0.5">{{ voidModal.transaction?.receipt_code }}</h3>
+                <p class="text-xs text-light-on-surface-variant uppercase tracking-widest font-label font-semibold">Otorisasi Void Transaksi</p>
+                <h3 class="font-display font-bold text-light-on-surface mt-0.5">{{ voidModal.transaction?.receipt_code }}</h3>
               </div>
             </div>
-            <button @click="closeVoidModal" class="text-slate-500 hover:text-slate-300 p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <button @click="closeVoidModal" class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-md hover:bg-light-surface-container-low transition-colors">
               <X class="w-5 h-5" />
             </button>
           </div>
           <div class="p-5 flex flex-col gap-4">
-            <p class="text-xs text-slate-400">
-              Transaksi sebesar <strong class="text-rose-400">{{ formatRupiah(voidModal.transaction?.total_amount) }}</strong> akan di-void. Membutuhkan verifikasi supervisor.
+            <p class="text-xs text-light-on-surface-variant">
+              Transaksi sebesar <strong class="text-light-error font-mono tabular-nums">{{ formatRupiah(voidModal.transaction?.total_amount) }}</strong> akan di-void. Membutuhkan verifikasi supervisor.
             </p>
 
             <!-- Supervisor PIN -->
             <div>
-              <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1.5">
-                <Lock class="w-3.5 h-3.5 text-amber-400" />
+              <label class="text-xs text-light-on-surface-variant uppercase tracking-wider font-label font-semibold mb-1.5 flex items-center gap-1.5">
+                <Lock class="w-3.5 h-3.5 text-light-warning" />
                 <span>PIN Supervisor / Admin</span>
-                <span class="text-rose-400">*</span>
+                <span class="text-light-error">*</span>
               </label>
               <input
                 v-model="voidModal.pin"
@@ -715,43 +701,43 @@
                 maxlength="6"
                 inputmode="numeric"
                 placeholder="Masukkan 6-digit PIN"
-                class="w-full bg-slate-800 border border-slate-700 focus:border-rose-500 rounded-xl px-4 py-2.5 text-center text-lg font-mono tracking-widest text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-rose-500/30 transition-colors"
+                class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-error rounded-md px-4 py-2.5 text-center text-lg font-mono tracking-widest text-light-on-surface placeholder-light-on-surface-variant focus:outline-none focus:ring-2 focus:ring-light-error/20 transition-colors"
                 @keydown.enter="confirmVoid"
               />
-              <p v-if="voidModal.pinError" class="text-xs text-rose-400 mt-1 flex items-center gap-1">
+              <p v-if="voidModal.pinError" class="text-xs text-light-error mt-1 flex items-center gap-1">
                 <AlertCircle class="w-3 h-3" />
                 {{ voidModal.pinError }}
               </p>
 
-              <!-- Touch-friendly 3x4 Keypad for Void PIN -->
+              <!-- Touch-friendly 3x4 Keypad -->
               <div class="grid grid-cols-3 gap-1.5 w-full max-w-[220px] mx-auto pt-2">
                 <button
                   v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]"
                   :key="n"
                   type="button"
                   @click="appendVoidPinDigit(String(n))"
-                  class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-base font-bold text-slate-100 flex items-center justify-center transition-all shadow-sm cursor-pointer touch-manipulation select-none"
+                  class="h-10 rounded-md bg-light-surface-container-low hover:bg-light-surface-container active:scale-95 border border-light-outline-variant text-base font-bold font-mono text-light-on-surface flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
                 >
                   {{ n }}
                 </button>
                 <button
                   type="button"
                   @click="clearVoidPin"
-                  class="h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700 active:scale-95 border border-slate-700 text-[11px] font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all uppercase tracking-wider cursor-pointer touch-manipulation select-none"
+                  class="h-10 rounded-md bg-light-surface-container-low hover:bg-light-surface-container active:scale-95 border border-light-outline-variant text-[11px] font-label font-bold text-light-on-surface-variant hover:text-light-on-surface flex items-center justify-center transition-all uppercase tracking-wider cursor-pointer touch-manipulation select-none"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   @click="appendVoidPinDigit('0')"
-                  class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-base font-bold text-slate-100 flex items-center justify-center transition-all shadow-sm cursor-pointer touch-manipulation select-none"
+                  class="h-10 rounded-md bg-light-surface-container-low hover:bg-light-surface-container active:scale-95 border border-light-outline-variant text-base font-bold font-mono text-light-on-surface flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
                 >
                   0
                 </button>
                 <button
                   type="button"
                   @click="deleteVoidPinDigit"
-                  class="h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
+                  class="h-10 rounded-md bg-light-surface-container-low hover:bg-light-surface-container active:scale-95 border border-light-outline-variant text-light-on-surface-variant hover:text-light-on-surface flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
                   title="Hapus"
                 >
                   <Delete class="w-4 h-4" />
@@ -761,14 +747,14 @@
 
             <!-- Void Reason -->
             <div>
-              <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1.5 block">
-                Alasan Void <span class="text-rose-400">*</span>
+              <label class="text-xs text-light-on-surface-variant uppercase tracking-wider font-label font-semibold mb-1.5 block">
+                Alasan Void <span class="text-light-error">*</span>
               </label>
               <textarea
                 v-model="voidModal.reason"
                 placeholder="Contoh: Salah nominal, pembeli membatalkan pesanan…"
                 rows="2"
-                class="w-full bg-slate-800 border border-slate-700 focus:border-rose-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-rose-500/30 transition-colors resize-none"
+                class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-error rounded-md px-3.5 py-2 text-xs text-light-on-surface placeholder-light-on-surface-variant focus:outline-none focus:ring-2 focus:ring-light-error/20 transition-colors resize-none"
               />
             </div>
 
@@ -776,7 +762,7 @@
               <button
                 type="button"
                 @click="closeVoidModal"
-                class="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
+                class="flex-1 py-2.5 rounded-md font-label font-semibold text-xs bg-light-surface-container-low text-light-on-surface border border-light-outline-variant hover:bg-light-surface-container transition-colors"
               >
                 Batal
               </button>
@@ -784,7 +770,7 @@
                 type="button"
                 @click="confirmVoid"
                 :disabled="!voidModal.reason.trim() || !voidModal.pin || voidModal.pin.length < 6 || voidModal.processing"
-                class="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-red-600 hover:bg-red-500 text-white transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20"
+                class="flex-1 py-2.5 rounded-md font-label font-semibold text-xs bg-light-error text-light-on-error hover:opacity-90 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Loader2 v-if="voidModal.processing" class="w-4 h-4 animate-spin" />
                 <XCircle v-else class="w-4 h-4" />
@@ -800,54 +786,54 @@
     <Transition name="modal">
       <div v-if="receiptModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="receiptModal.open = false" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl z-10 overflow-hidden">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-xl w-full max-w-md shadow-2xl z-10 overflow-hidden">
           <!-- Modal Header -->
-          <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-800/40">
+          <div class="flex items-center justify-between px-5 py-3.5 border-b border-light-outline-variant bg-light-surface-container-low">
             <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div class="w-7 h-7 rounded-md bg-light-secondary-container border border-light-outline-variant flex items-center justify-center text-light-primary">
                 <Receipt class="w-4 h-4" />
               </div>
               <div>
-                <h3 class="font-bold text-slate-100 text-sm">Struk Digital</h3>
-                <p class="text-[11px] text-slate-400">Bukti Pembayaran Transaksi</p>
+                <h3 class="font-display font-bold text-light-on-surface text-sm">Struk Digital</h3>
+                <p class="text-[11px] text-light-on-surface-variant">Bukti Pembayaran Transaksi</p>
               </div>
             </div>
             <button
               @click="receiptModal.open = false"
-              class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-md hover:bg-light-surface-container transition-colors"
             >
               <X class="w-5 h-5" />
             </button>
           </div>
 
-          <!-- Receipt Paper Card -->
+          <!-- Receipt Paper -->
           <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 space-y-3">
-              <!-- Receipt Header Info -->
-              <div class="text-center pb-3 border-b border-dashed border-slate-800 space-y-1">
-                <h4 class="font-sans font-black text-sm tracking-widest text-slate-100 uppercase">Nyaris Pop-Up POS</h4>
-                <p v-if="receiptModal.transaction?.event_name" class="text-slate-400 font-sans text-xs">
+            <div class="bg-light-surface-container-low border border-light-outline-variant rounded-md p-4 font-mono text-xs text-light-on-surface space-y-3">
+              <!-- Header -->
+              <div class="text-center pb-3 border-b border-dashed border-light-outline-variant space-y-1">
+                <h4 class="font-display font-black text-sm tracking-widest text-light-on-surface uppercase">Nyaris Pop-Up POS</h4>
+                <p v-if="receiptModal.transaction?.event_name" class="text-light-on-surface-variant font-label text-xs">
                   {{ receiptModal.transaction.event_name }}
                 </p>
-                <p class="text-amber-400 text-xs font-bold pt-1">
+                <p class="text-light-primary text-xs font-bold pt-1 tabular-nums">
                   #{{ receiptModal.transaction?.receipt_code }}
                 </p>
-                <div class="text-[11px] text-slate-500 pt-0.5">
+                <div class="text-[11px] text-light-on-surface-variant pt-0.5">
                   {{ formatDate(receiptModal.transaction?.created_at) }}
                 </div>
                 <div class="inline-block mt-1">
                   <span :class="[
-                    'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
+                    'text-[10px] font-label font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border',
                     receiptModal.transaction?.payment_method === 'QRIS'
-                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                      : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      ? 'bg-light-surface-container text-light-on-surface-variant border-light-outline-variant'
+                      : 'bg-light-secondary-container text-light-on-secondary-container border-light-secondary-container'
                   ]">
                     {{ receiptModal.transaction?.payment_method }}
                   </span>
                 </div>
               </div>
 
-              <!-- Purchased Items Breakdown -->
+              <!-- Items -->
               <div class="space-y-2 py-1">
                 <div
                   v-for="(item, idx) in receiptModal.items"
@@ -855,42 +841,38 @@
                   class="flex justify-between items-start gap-2"
                 >
                   <div class="min-w-0 flex-1">
-                    <div class="text-slate-200 font-semibold truncate">
+                    <div class="text-light-on-surface font-semibold truncate">
                       {{ item.tenantName }}
-                      <span v-if="item.boothNumber" class="text-slate-500 text-[10px]">({{ item.boothNumber }})</span>
+                      <span v-if="item.boothNumber" class="text-light-on-surface-variant text-[10px] tabular-nums">({{ item.boothNumber }})</span>
                     </div>
-                    <div v-if="item.itemNote" class="text-[10px] text-slate-500 italic truncate">
-                      {{ item.itemNote }}
-                    </div>
+                    <div v-if="item.itemNote" class="text-[10px] text-light-on-surface-variant italic truncate">{{ item.itemNote }}</div>
                   </div>
-                  <div class="font-bold text-slate-200 shrink-0">
+                  <div class="font-bold text-light-on-surface shrink-0 tabular-nums">
                     {{ formatRupiah(item.grossAmount) }}
                   </div>
                 </div>
               </div>
 
-              <!-- Totals & Payment Details -->
-              <div class="pt-3 border-t border-dashed border-slate-800 space-y-1.5">
-                <div class="flex justify-between text-sm font-bold text-slate-100">
+              <!-- Totals -->
+              <div class="pt-3 border-t border-dashed border-light-outline-variant space-y-1.5">
+                <div class="flex justify-between text-sm font-bold text-light-on-surface">
                   <span>TOTAL</span>
-                  <span class="text-emerald-400">{{ formatRupiah(receiptModal.transaction?.total_amount) }}</span>
+                  <span class="text-light-primary tabular-nums">{{ formatRupiah(receiptModal.transaction?.total_amount) }}</span>
                 </div>
-
-                <!-- Cash Tendered & Change -->
                 <template v-if="receiptModal.transaction?.payment_method === 'CASH'">
-                  <div class="flex justify-between text-slate-400 text-xs pt-1">
+                  <div class="flex justify-between text-light-on-surface-variant text-xs pt-1">
                     <span>Uang Diterima</span>
-                    <span>{{ formatRupiah(receiptModal.transaction?.cash_tendered || receiptModal.transaction?.total_amount) }}</span>
+                    <span class="tabular-nums">{{ formatRupiah(receiptModal.transaction?.cash_tendered || receiptModal.transaction?.total_amount) }}</span>
                   </div>
-                  <div class="flex justify-between text-xs font-semibold text-emerald-400">
+                  <div class="flex justify-between text-xs font-semibold text-light-primary">
                     <span>Kembalian</span>
-                    <span>{{ formatRupiah(receiptModal.transaction?.change_amount || 0) }}</span>
+                    <span class="tabular-nums">{{ formatRupiah(receiptModal.transaction?.change_amount || 0) }}</span>
                   </div>
                 </template>
               </div>
 
-              <!-- Footer note -->
-              <div class="text-center pt-3 border-t border-dashed border-slate-800 text-[10px] text-slate-500">
+              <!-- Footer -->
+              <div class="text-center pt-3 border-t border-dashed border-light-outline-variant text-[10px] text-light-on-surface-variant">
                 Terima kasih telah berbelanja!
               </div>
             </div>
@@ -900,16 +882,16 @@
               <button
                 type="button"
                 @click="copyReceiptText"
-                class="flex-1 py-2.5 rounded-xl font-semibold text-xs transition-all duration-150 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95 cursor-pointer"
+                class="flex-1 py-2.5 rounded-md font-label font-semibold text-xs transition-all duration-150 flex items-center justify-center gap-1.5 bg-light-surface-container-low border border-light-outline-variant text-light-on-surface hover:bg-light-surface-container active:scale-95 cursor-pointer"
               >
-                <Check v-if="receiptModal.copied" class="w-4 h-4 text-emerald-400" />
+                <Check v-if="receiptModal.copied" class="w-4 h-4 text-light-primary" />
                 <Copy v-else class="w-4 h-4" />
                 {{ receiptModal.copied ? 'Disalin!' : 'Copy Text' }}
               </button>
               <button
                 type="button"
                 @click="receiptModal.open = false"
-                class="px-5 py-2.5 rounded-xl font-semibold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all duration-150 active:scale-95 cursor-pointer"
+                class="px-5 py-2.5 rounded-md font-label font-semibold text-xs bg-light-primary text-light-on-primary hover:opacity-90 transition-all duration-150 active:scale-95 cursor-pointer"
               >
                 Selesai
               </button>
@@ -933,10 +915,12 @@ import {
 } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase.js'
 import { useAuth } from '@/lib/useAuth.js'
+import { useEvents } from '@/lib/useEvents.js'
 import { formatRupiah } from '@/lib/currency.js'
 
 const router = useRouter()
 const { signOut } = useAuth()
+const { selectedEventId: globalEventId, selectEventId: setGlobalEventId } = useEvents()
 
 async function handleLogout() {
   await signOut()
@@ -957,6 +941,13 @@ const events = ref([])
 const selectedEventId = ref('')
 const tenants = ref([])
 const recentTransactions = ref([])
+
+watch(globalEventId, async (newId) => {
+  if (newId && newId !== selectedEventId.value && events.value.some((e) => e.id === newId)) {
+    selectedEventId.value = newId
+    await onEventChange()
+  }
+})
 
 // ─── Tenant Search & Category Filtering ───────────────────────────────────────
 
@@ -1348,8 +1339,12 @@ async function fetchEvents() {
     events.value = (data || []).filter((e) => (e.status ? e.status === 'ACTIVE' : e.is_active !== false))
 
     // Auto-select the first active event or maintain current if still active
+    const globalMatch = globalEventId.value && events.value.find((e) => e.id === globalEventId.value)
     const stillActive = events.value.some((e) => e.id === selectedEventId.value)
-    if ((!selectedEventId.value || !stillActive) && events.value.length > 0) {
+    if (globalMatch) {
+      selectedEventId.value = globalMatch.id
+      await onEventChange()
+    } else if ((!selectedEventId.value || !stillActive) && events.value.length > 0) {
       selectedEventId.value = events.value[0].id
       await onEventChange()
     } else if (events.value.length === 0) {
@@ -1425,6 +1420,9 @@ async function fetchRecentTransactions() {
 // ─── Event Change ─────────────────────────────────────────────────────────────
 
 async function onEventChange() {
+  if (selectedEventId.value && selectedEventId.value !== globalEventId.value) {
+    setGlobalEventId(selectedEventId.value)
+  }
   cart.value = []
   receiptCode.value = 'AUTO'
   tenantSearchQuery.value = ''
@@ -1666,6 +1664,15 @@ onUnmounted(() => {
 }
 .drawer-enter-to,
 .drawer-leave-from {
-  max-height: 520px;
+  max-height: 560px;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 </style>
