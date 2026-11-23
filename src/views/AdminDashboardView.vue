@@ -2398,88 +2398,120 @@ async function copyTenantWaSummary(row) {
       <!-- ════════════════════════════════════════════════════════════════
            TAB 2: EVENT & LINEUP
       ═════════════════════════════════════════════════════════════════ -->
-      <div v-else-if="activeTab === 'lineup'" class="space-y-8">
+      <div v-else-if="activeTab === 'lineup'" class="flex flex-col gap-gutter-xl">
+        <!-- ── Page Header & Primary CTA ──────────────────────────────── -->
+        <header class="flex flex-wrap items-start justify-between gap-gutter-lg">
+          <div class="min-w-0">
+            <h1 class="font-headline text-headline-lg text-light-on-surface">Kelola Event &amp; Booth</h1>
+            <p class="font-body text-body-md text-light-on-surface-variant mt-gutter-xs">Atur jadwal acara, status aktif kasir, dan daftar booth tenant yang berpartisipasi.</p>
+          </div>
 
-        <!-- ── Section 1: Event Management ──────────────────────────────── -->
-      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-            <TrendingUp class="w-5 h-5 text-sky-400" />
-            Event Management
-          </h2>
           <button
             @click="showCreateEventForm = !showCreateEventForm"
-            class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl font-semibold text-sm transition-colors self-start sm:self-auto cursor-pointer"
+            type="button"
+            class="inline-flex items-center gap-gutter-sm px-gutter-lg py-gutter-md rounded-md bg-light-primary text-light-on-primary hover:bg-light-primary-container transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer"
           >
             <Plus class="w-4 h-4" />
-            Create New Event
+            <span>+ Buat Event Baru</span>
             <ChevronUp v-if="showCreateEventForm" class="w-4 h-4" />
             <ChevronDown v-else class="w-4 h-4" />
           </button>
-        </div>
+        </header>
 
-        <!-- Event Selector -->
-        <div class="flex items-center gap-3 flex-wrap">
-          <label class="text-sm font-medium text-slate-400 whitespace-nowrap">Active Event:</label>
-          <div class="relative flex-1 max-w-sm">
-            <select
-              v-model="selectedEventId"
-              class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 pr-9 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 truncate"
-            >
-              <option value="" disabled>-- Select an event --</option>
-              <option v-for="ev in events" :key="ev.id" :value="ev.id">
-                [{{ (ev.status === 'COMPLETED' || ev.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}] {{ ev.name }} {{ ev.event_dates ? `(${ev.event_dates})` : '' }}
-              </option>
-            </select>
-            <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <!-- ── Active Event Control Card ──────────────────────────────── -->
+        <section aria-label="Kontrol Event Aktif" class="p-gutter-xl rounded-lg bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-lg">
+          <div class="flex flex-wrap items-center justify-between gap-gutter-md">
+            <div class="flex flex-wrap items-center gap-gutter-md min-w-0">
+              <!-- Event Switcher Dropdown Pill -->
+              <div class="relative inline-flex items-center">
+                <span class="material-symbols-outlined text-[18px] text-light-primary absolute left-3 pointer-events-none" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">festival</span>
+                <select
+                  v-model="selectedEventId"
+                  class="appearance-none pl-9 pr-8 py-2 rounded-md bg-light-surface-container-low border border-light-outline-variant text-light-on-surface hover:border-light-primary transition-colors cursor-pointer font-title text-title-md focus:outline-none focus:ring-2 focus:ring-light-primary"
+                >
+                  <option value="" disabled>-- Pilih Event --</option>
+                  <option v-for="ev in events" :key="ev.id" :value="ev.id">
+                    {{ ev.name }} {{ ev.event_dates ? `• ${ev.event_dates}` : '' }}
+                  </option>
+                </select>
+                <span class="material-symbols-outlined text-[18px] text-light-on-surface-variant absolute right-2.5 pointer-events-none" aria-hidden="true">expand_more</span>
+              </div>
+
+              <!-- Status Toggle Pill -->
+              <button
+                v-if="selectedEvent"
+                type="button"
+                @click="toggleEventStatus(selectedEvent)"
+                :disabled="togglingEventStatus"
+                :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
+                  ? 'bg-light-surface-container text-light-on-surface-variant border-light-outline-variant'
+                  : 'bg-light-secondary-container text-light-primary border-light-primary'"
+                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full border font-label text-label-md transition-colors cursor-pointer shrink-0"
+                :title="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'Aktifkan kembali event ini agar muncul di kasir' : 'Tandai event ini selesai (arsipkan dari kasir)'"
+              >
+                <Loader2 v-if="togglingEventStatus" class="w-3.5 h-3.5 animate-spin" />
+                <span v-else class="w-2 h-2 rounded-full shrink-0" :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'bg-light-on-surface-variant' : 'bg-light-primary'"></span>
+                <span>
+                  {{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'STATUS: COMPLETED (Diarsipkan)' : 'STATUS: ACTIVE (Tampil di Kasir)' }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Action buttons in Hero Card -->
+            <div class="flex flex-wrap items-center gap-gutter-sm shrink-0">
+              <button
+                v-if="selectedEvent"
+                type="button"
+                @click="openEditEvent"
+                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm rounded-md bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface hover:bg-light-surface-container-low transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer"
+              >
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">edit</span>
+                <span>Edit Detail Event</span>
+                <ChevronUp v-if="showEditEventForm" class="w-3.5 h-3.5 ml-1" />
+                <ChevronDown v-else class="w-3.5 h-3.5 ml-1" />
+              </button>
+              <button
+                v-if="selectedEvent"
+                type="button"
+                @click="openAssignLineupModal"
+                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm rounded-md bg-light-primary text-light-on-primary hover:bg-light-primary-container transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer"
+              >
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
+                <span>+ Tugaskan Brand dari Database</span>
+              </button>
+              <button
+                v-if="selectedEvent"
+                type="button"
+                @click="showAddTenantForm = !showAddTenantForm"
+                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm rounded-md bg-light-secondary-container text-light-on-secondary-container hover:bg-light-surface-variant transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer"
+              >
+                <Plus class="w-4 h-4 text-light-primary" />
+                <span>+ Input Booth Manual</span>
+                <ChevronUp v-if="showAddTenantForm" class="w-3.5 h-3.5 ml-1" />
+                <ChevronDown v-else class="w-3.5 h-3.5 ml-1" />
+              </button>
+            </div>
           </div>
 
-          <!-- Status Badge -->
-          <div v-if="selectedEvent" class="flex items-center">
-            <span
-              :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
-                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'"
-              class="px-2.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5"
-            >
-              <span class="w-2 h-2 rounded-full" :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'bg-amber-400' : 'bg-emerald-400'"></span>
-              {{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'COMPLETED' : 'ACTIVE' }}
+          <!-- Event Metadata Row -->
+          <div v-if="selectedEvent" class="flex flex-wrap items-center gap-gutter-lg pt-gutter-md border-t border-light-outline-variant">
+            <div class="flex items-center gap-gutter-xs">
+              <span class="material-symbols-outlined text-[18px] text-light-on-surface-variant" aria-hidden="true">location_on</span>
+              <span class="font-body text-body-md text-light-on-surface-variant">Venue:</span>
+              <span class="font-label text-label-lg text-light-on-surface font-semibold">{{ selectedEvent.venue || '—' }}</span>
+            </div>
+
+            <span class="font-mono text-mono-sm px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface tabular-nums font-semibold">
+              Venue {{ selectedEvent.venue_share_percent ?? 10 }}% • Organizer {{ selectedEvent.organizer_share_percent ?? 0 }}% • Tenant {{ 100 - (Number(selectedEvent.venue_share_percent ?? 10) + Number(selectedEvent.organizer_share_percent ?? 0)) }}%
+            </span>
+
+            <span v-if="selectedEvent.event_dates" class="font-body text-body-sm text-light-primary">
+              Jadwal: <strong>{{ selectedEvent.event_dates }}</strong>
             </span>
           </div>
+        </section>
 
-          <!-- Toggle Status Button -->
-          <button
-            v-if="selectedEvent"
-            @click="toggleEventStatus(selectedEvent)"
-            :disabled="togglingEventStatus"
-            :class="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false)
-              ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border-emerald-500/30'
-              : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border-amber-500/30'"
-            class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm border transition-colors cursor-pointer disabled:opacity-60"
-            :title="(selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'Aktifkan kembali event ini agar muncul di kasir' : 'Tandai event ini selesai (arsipkan dari kasir)'"
-          >
-            <Loader2 v-if="togglingEventStatus" class="w-4 h-4 animate-spin" />
-            <RefreshCw v-else class="w-4 h-4" />
-            <span>{{ (selectedEvent.status === 'COMPLETED' || selectedEvent.is_active === false) ? 'Aktifkan Kembali' : 'Tandai Selesai' }}</span>
-          </button>
-
-          <button
-            v-if="selectedEvent"
-            @click="openEditEvent"
-            :class="showEditEventForm ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700'"
-            class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
-            title="Edit event settings & share %"
-          >
-            <Pencil class="w-4 h-4" />
-            <span>Edit Event</span>
-            <ChevronUp v-if="showEditEventForm" class="w-4 h-4" />
-            <ChevronDown v-else class="w-4 h-4" />
-          </button>
-
-          <Loader2 v-if="loadingEvents" class="w-5 h-5 text-slate-400 animate-spin" />
-        </div>
-
-        <!-- Create Event Form (collapsible) -->
+        <!-- ── Create Event Form (collapsible) ────────────────────────── -->
         <Transition
           enter-active-class="transition-all duration-200 ease-out"
           enter-from-class="opacity-0 -translate-y-2"
@@ -2488,43 +2520,51 @@ async function copyTenantWaSummary(row) {
           leave-from-class="opacity-100 translate-y-0"
           leave-to-class="opacity-0 -translate-y-2"
         >
-          <div v-if="showCreateEventForm" class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 space-y-4">
-            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">New Event Details</h3>
+          <div v-if="showCreateEventForm" class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-headline text-headline-sm font-bold text-light-on-surface uppercase tracking-wider flex items-center gap-2">
+                <Plus class="w-4 h-4 text-light-primary" />
+                Buat Event Baru
+              </h3>
+              <button @click="showCreateEventForm = false" class="text-light-on-surface-variant hover:text-light-on-surface p-1">
+                <X class="w-4 h-4" />
+              </button>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Event Name <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama Event <span class="text-light-error">*</span></label>
                 <input
                   v-model="newEvent.name"
                   type="text"
-                  placeholder="e.g. Market Minggu #12"
-                  class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-500"
+                  placeholder="e.g. Nyaris Pop Up Vol. 7"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary placeholder:text-light-on-surface-variant"
                 />
               </div>
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Venue</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Venue / Lokasi</label>
                 <input
                   v-model="newEvent.venue"
                   type="text"
-                  placeholder="e.g. Lapangan Banteng"
-                  class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-500"
+                  placeholder="e.g. Toko Kopi Mas Boy"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary placeholder:text-light-on-surface-variant"
                 />
               </div>
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Event Dates (Calendar Range)</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Tanggal Pelaksanaan (Rentang Kalender)</label>
                 <DateRangePicker v-model:start="eventStartDate" v-model:end="eventEndDate" />
               </div>
               <div class="space-y-1.5 sm:col-span-2">
                 <div class="flex items-center justify-between flex-wrap gap-2">
-                  <label class="text-xs font-medium text-slate-400">Default Revenue Split (3-Way)</label>
-                  <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                    Total Potongan: <strong class="text-amber-400">{{ newEventTotalCut }}%</strong> • Hak Tenant: <strong class="text-emerald-400">{{ newEventTenantTakeHome }}%</strong>
+                  <label class="text-xs font-label font-semibold text-light-on-surface-variant">Skema Default Bagi Hasil (3-Way Split)</label>
+                  <span class="font-mono text-mono-sm px-2.5 py-0.5 rounded-full bg-light-surface-container-low text-light-on-surface border border-light-outline-variant tabular-nums font-semibold">
+                    Total Potongan: <strong class="text-light-error font-bold">{{ newEventTotalCut }}%</strong> • Hak Tenant: <strong class="text-light-primary font-bold">{{ newEventTenantTakeHome }}%</strong>
                   </span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div class="space-y-1">
-                    <label class="text-[11px] font-medium text-violet-400 flex items-center justify-between">
-                      <span>Venue Share %</span>
-                      <span class="text-slate-500 font-normal">Lokasi / Tempat</span>
+                    <label class="text-[11px] font-label font-semibold text-light-secondary flex items-center justify-between">
+                      <span>Bagian Venue %</span>
+                      <span class="text-light-on-surface-variant font-normal">Lokasi / Tempat</span>
                     </label>
                     <input
                       v-model.number="newEvent.venue_share_percent"
@@ -2532,13 +2572,13 @@ async function copyTenantWaSummary(row) {
                       min="0"
                       max="100"
                       step="0.5"
-                      class="w-full bg-slate-700 border border-slate-600 focus:border-violet-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30"
+                      class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary tabular-nums font-mono"
                     />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[11px] font-medium text-amber-400 flex items-center justify-between">
-                      <span>Organizer Share %</span>
-                      <span class="text-slate-500 font-normal">Penyelenggara / EO</span>
+                    <label class="text-[11px] font-label font-semibold text-light-secondary flex items-center justify-between">
+                      <span>Bagian Organizer %</span>
+                      <span class="text-light-on-surface-variant font-normal">Penyelenggara / EO</span>
                     </label>
                     <input
                       v-model.number="newEvent.organizer_share_percent"
@@ -2546,36 +2586,38 @@ async function copyTenantWaSummary(row) {
                       min="0"
                       max="100"
                       step="0.5"
-                      class="w-full bg-slate-700 border border-slate-600 focus:border-amber-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                      class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary tabular-nums font-mono"
                     />
                   </div>
                 </div>
               </div>
             </div>
-            <div v-if="createEventError" class="text-sm text-rose-400 bg-rose-400/10 border border-rose-400/30 rounded-lg px-3 py-2">
+            <div v-if="createEventError" class="text-sm text-light-error bg-light-error-container/20 border border-light-error/30 rounded-md px-3 py-2">
               {{ createEventError }}
             </div>
-            <div class="flex justify-end gap-3">
+            <div class="flex justify-end gap-3 pt-2">
               <button
                 @click="showCreateEventForm = false"
-                class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                type="button"
+                class="px-4 py-2 rounded-md text-sm font-label text-light-on-surface-variant hover:bg-light-surface-container-low transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 @click="createEvent"
                 :disabled="creatingEvent"
-                class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors"
+                type="button"
+                class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-60 text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
               >
                 <Loader2 v-if="creatingEvent" class="w-4 h-4 animate-spin" />
                 <Plus v-else class="w-4 h-4" />
-                Create Event
+                Simpan Event
               </button>
             </div>
           </div>
         </Transition>
 
-        <!-- Edit Event Form (collapsible) -->
+        <!-- ── Edit Event Form (collapsible) ──────────────────────────── -->
         <Transition
           enter-active-class="transition-all duration-200 ease-out"
           enter-from-class="opacity-0 -translate-y-2"
@@ -2584,41 +2626,41 @@ async function copyTenantWaSummary(row) {
           leave-from-class="opacity-100 translate-y-0"
           leave-to-class="opacity-0 -translate-y-2"
         >
-          <div v-if="showEditEventForm" class="bg-slate-800/80 border border-sky-500/30 rounded-xl p-5 space-y-4">
+          <div v-if="showEditEventForm" class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant p-6 space-y-4">
             <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold text-sky-400 uppercase tracking-wider flex items-center gap-2">
-                <Pencil class="w-4 h-4" />
-                Edit Event Settings — {{ selectedEvent?.name }}
+              <h3 class="font-headline text-headline-sm font-bold text-light-on-surface uppercase tracking-wider flex items-center gap-2">
+                <Pencil class="w-4 h-4 text-light-primary" />
+                Edit Pengaturan Event — {{ selectedEvent?.name }}
               </h3>
-              <button @click="showEditEventForm = false" class="text-slate-400 hover:text-slate-200 p-1">
+              <button @click="showEditEventForm = false" class="text-light-on-surface-variant hover:text-light-on-surface p-1">
                 <X class="w-4 h-4" />
               </button>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Event Name <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama Event <span class="text-light-error">*</span></label>
                 <input
                   v-model="editEventForm.name"
                   type="text"
-                  placeholder="e.g. Market Minggu #12"
-                  class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder-slate-500"
+                  placeholder="e.g. Nyaris Pop Up Vol. 6"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary"
                 />
               </div>
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Venue</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Venue / Lokasi</label>
                 <input
                   v-model="editEventForm.venue"
                   type="text"
-                  placeholder="e.g. Lapangan Banteng"
-                  class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder-slate-500"
+                  placeholder="e.g. Toko Kopi Mas Boy"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary"
                 />
               </div>
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Status Event</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Status Event</label>
                 <select
                   v-model="editEventForm.status"
-                  class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary cursor-pointer"
                 >
                   <option value="ACTIVE">ACTIVE (Sedang Berjalan / Kasir Aktif)</option>
                   <option value="COMPLETED">COMPLETED (Selesai / Diarsipkan dari Kasir)</option>
@@ -2626,18 +2668,18 @@ async function copyTenantWaSummary(row) {
               </div>
               <div class="space-y-1 sm:col-span-2">
                 <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
-                  <label class="text-xs font-medium text-slate-400">Event Dates (Calendar Range)</label>
-                  <div class="text-xs text-slate-400 flex items-center gap-1.5 flex-wrap">
+                  <label class="text-xs font-label font-semibold text-light-on-surface-variant">Tanggal Pelaksanaan (Rentang Kalender)</label>
+                  <div class="text-xs text-light-on-surface-variant flex items-center gap-1.5 flex-wrap">
                     <span>Saat ini:</span>
-                    <strong class="text-slate-200 font-mono">{{ editEventForm.event_dates || 'Belum diatur' }}</strong>
-                    <span v-if="editDateChanged" class="text-emerald-400 ml-1">
+                    <strong class="text-light-on-surface font-mono">{{ editEventForm.event_dates || 'Belum diatur' }}</strong>
+                    <span v-if="editDateChanged" class="text-light-primary ml-1">
                       → Berubah ke: <strong>{{ formatEventDates(editStartDate, editEndDate) }}</strong>
                     </span>
                     <button
                       v-if="editDateChanged"
                       type="button"
                       @click="editDateChanged = false"
-                      class="text-[11px] text-amber-400 hover:underline ml-1 cursor-pointer"
+                      class="text-[11px] text-light-tertiary hover:underline ml-1 cursor-pointer"
                     >
                       (Batal ganti tanggal)
                     </button>
@@ -2652,16 +2694,16 @@ async function copyTenantWaSummary(row) {
               </div>
               <div class="space-y-1.5 sm:col-span-2">
                 <div class="flex items-center justify-between flex-wrap gap-2">
-                  <label class="text-xs font-medium text-slate-400">Default Revenue Split (3-Way)</label>
-                  <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-700">
-                    Total Potongan: <strong class="text-amber-400">{{ editEventTotalCut }}%</strong> • Hak Tenant: <strong class="text-emerald-400">{{ editEventTenantTakeHome }}%</strong>
+                  <label class="text-xs font-label font-semibold text-light-on-surface-variant">Skema Default Bagi Hasil (3-Way Split)</label>
+                  <span class="font-mono text-mono-sm px-2.5 py-0.5 rounded-full bg-light-surface-container-low text-light-on-surface border border-light-outline-variant tabular-nums font-semibold">
+                    Total Potongan: <strong class="text-light-error font-bold">{{ editEventTotalCut }}%</strong> • Hak Tenant: <strong class="text-light-primary font-bold">{{ editEventTenantTakeHome }}%</strong>
                   </span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div class="space-y-1">
-                    <label class="text-[11px] font-medium text-violet-400 flex items-center justify-between">
-                      <span>Venue Share %</span>
-                      <span class="text-slate-500 font-normal">Lokasi / Tempat</span>
+                    <label class="text-[11px] font-label font-semibold text-light-secondary flex items-center justify-between">
+                      <span>Bagian Venue %</span>
+                      <span class="text-light-on-surface-variant font-normal">Lokasi / Tempat</span>
                     </label>
                     <input
                       v-model.number="editEventForm.venue_share_percent"
@@ -2669,13 +2711,13 @@ async function copyTenantWaSummary(row) {
                       min="0"
                       max="100"
                       step="0.5"
-                      class="w-full bg-slate-700 border border-slate-600 focus:border-violet-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30"
+                      class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary tabular-nums font-mono"
                     />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[11px] font-medium text-amber-400 flex items-center justify-between">
-                      <span>Organizer Share %</span>
-                      <span class="text-slate-500 font-normal">Penyelenggara / EO</span>
+                    <label class="text-[11px] font-label font-semibold text-light-secondary flex items-center justify-between">
+                      <span>Bagian Organizer %</span>
+                      <span class="text-light-on-surface-variant font-normal">Penyelenggara / EO</span>
                     </label>
                     <input
                       v-model.number="editEventForm.organizer_share_percent"
@@ -2683,7 +2725,7 @@ async function copyTenantWaSummary(row) {
                       min="0"
                       max="100"
                       step="0.5"
-                      class="w-full bg-slate-700 border border-slate-600 focus:border-amber-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                      class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary tabular-nums font-mono"
                     />
                   </div>
                 </div>
@@ -2691,15 +2733,15 @@ async function copyTenantWaSummary(row) {
 
               <!-- Bulk Sync Checkbox -->
               <div class="sm:col-span-2">
-                <label class="flex items-start gap-3 cursor-pointer bg-slate-900/70 border border-slate-700 rounded-xl p-3.5 select-none hover:border-sky-500/40 transition-colors">
+                <label class="flex items-start gap-3 cursor-pointer bg-light-surface-container-low border border-light-outline-variant rounded-md p-3.5 select-none hover:border-light-primary transition-colors">
                   <input
                     type="checkbox"
                     v-model="editEventForm.syncTenants"
-                    class="mt-0.5 w-4 h-4 rounded text-sky-500 focus:ring-sky-500 border-slate-600 bg-slate-800 accent-sky-500 cursor-pointer"
+                    class="mt-0.5 w-4 h-4 rounded text-light-primary focus:ring-light-primary border-light-outline-variant bg-light-surface-container-lowest accent-light-primary cursor-pointer"
                   />
                   <div class="text-xs">
-                    <span class="text-slate-200 font-semibold block">Terapkan default share % baru ke semua tenant di event ini</span>
-                    <span class="text-slate-400 font-normal block mt-0.5">
+                    <span class="text-light-on-surface font-semibold block">Terapkan default share % baru ke semua tenant di event ini</span>
+                    <span class="text-light-on-surface-variant font-normal block mt-0.5">
                       Jika dicentang, persentase bagi hasil pada {{ tenants.length }} tenant terdaftar akan otomatis diselaraskan dengan setting baru.
                     </span>
                   </div>
@@ -2707,431 +2749,403 @@ async function copyTenantWaSummary(row) {
               </div>
             </div>
 
-            <div v-if="editEventError" class="text-sm text-rose-400 bg-rose-400/10 border border-rose-400/30 rounded-lg px-3 py-2">
+            <div v-if="editEventError" class="text-sm text-light-error bg-light-error-container/20 border border-light-error/30 rounded-md px-3 py-2">
               {{ editEventError }}
             </div>
 
             <div class="flex justify-end gap-3 pt-2">
               <button
                 @click="showEditEventForm = false"
-                class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                type="button"
+                class="px-4 py-2 rounded-md text-sm font-label text-light-on-surface-variant hover:bg-light-surface-container-low transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 @click="saveEditEvent"
                 :disabled="savingEditEvent"
-                class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+                type="button"
+                class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-60 text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
               >
                 <Loader2 v-if="savingEditEvent" class="w-4 h-4 animate-spin" />
                 <Check v-else class="w-4 h-4" />
-                Save Changes
+                Simpan Perubahan
               </button>
             </div>
           </div>
         </Transition>
-      </section>
 
-      <!-- ── Sections 2–4 shown only when event is selected ────────────── -->
-      <template v-if="selectedEventId">
+        <!-- ── Sections 2–4 shown only when event is selected ────────────── -->
+        <template v-if="selectedEventId">
+          <!-- ── Section 2: Daftar Booth & Tenant Terdaftar ─────────────── -->
+          <section aria-label="Daftar Booth dan Tenant Terdaftar" class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant overflow-hidden">
+            <div class="p-gutter-lg border-b border-light-outline-variant flex flex-col gap-gutter-md">
+              <div class="flex flex-wrap items-center justify-between gap-gutter-md">
+                <div>
+                  <h2 class="font-headline text-headline-md text-light-on-surface">Daftar Booth &amp; Tenant Terdaftar</h2>
+                  <p class="font-body text-body-sm text-light-on-surface-variant">Atur nomor booth, komisi bagi hasil kustom, dan kelola akses portal tenant.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-mono-sm px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface-variant">
+                    {{ tenants.length }} Booth Terdaftar
+                  </span>
+                </div>
+              </div>
 
-        <!-- ── Section 2: Tenant Management ───────────────────────────── -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
-              <Wallet class="w-5 h-5 text-amber-400 shrink-0" />
-              Tenant Management
-              <span class="text-xs sm:text-sm font-normal text-slate-500">— {{ selectedEvent?.name }}</span>
-            </h2>
-            <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-              <button
-                @click="openAssignLineupModal"
-                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 sm:px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer shadow-sm shadow-emerald-950/40"
-                title="Pilih brand dari Master Directory untuk dimasukkan ke event ini"
+              <!-- Lineup Error / Alert Banner -->
+              <div
+                v-if="lineupError"
+                class="flex items-start gap-3 bg-light-error-container/20 border border-light-error/30 rounded-md p-4 text-light-error text-sm"
               >
-                <Plus class="w-4 h-4" />
-                <span>Pilih dari Master</span>
-              </button>
-              <button
-                @click="showAddTenantForm = !showAddTenantForm"
-                class="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 sm:px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer shadow-sm shadow-amber-950/40"
+                <AlertCircle class="w-5 h-5 text-light-error shrink-0 mt-0.5" />
+                <div class="flex-1">
+                  <p class="font-semibold text-light-on-surface">Pemberitahuan Lineup</p>
+                  <p class="text-xs text-light-on-surface-variant mt-0.5 leading-relaxed">{{ lineupError }}</p>
+                </div>
+                <button
+                  @click="lineupError = ''"
+                  class="text-light-error hover:opacity-80 p-1 rounded-sm cursor-pointer shrink-0"
+                  title="Tutup pemberitahuan"
+                >
+                  <X class="w-4 h-4" />
+                </button>
+              </div>
+
+              <!-- Add Tenant Form (collapsible) -->
+              <Transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2"
               >
-                <Plus class="w-4 h-4" />
-                <span>Tenant Baru</span>
-                <ChevronUp v-if="showAddTenantForm" class="w-4 h-4" />
-                <ChevronDown v-else class="w-4 h-4" />
-              </button>
+                <div v-if="showAddTenantForm" class="rounded-lg bg-light-surface-container-low border border-light-outline-variant p-5 space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h3 class="font-headline text-headline-sm font-bold text-light-on-surface uppercase tracking-wider flex items-center gap-2">
+                      <Plus class="w-4 h-4 text-light-primary" />
+                      Input Booth &amp; Tenant Manual
+                    </h3>
+                    <button @click="showAddTenantForm = false" class="text-light-on-surface-variant hover:text-light-on-surface p-1">
+                      <X class="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="space-y-1">
+                      <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama Brand / Tenant <span class="text-light-error">*</span></label>
+                      <input
+                        v-model="newTenant.name"
+                        type="text"
+                        placeholder="e.g. Kopi Jago"
+                        class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary"
+                      />
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-xs font-label font-semibold text-light-on-surface-variant">Kategori <span class="text-light-error">*</span></label>
+                      <select
+                        v-model="selectedCategory"
+                        class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary cursor-pointer"
+                      >
+                        <option v-for="cat in PRESET_CATEGORIES" :key="cat" :value="cat">
+                          {{ cat }}
+                        </option>
+                      </select>
+                    </div>
+                    <div v-if="selectedCategory === 'Other (Custom)'" class="space-y-1 sm:col-span-2 lg:col-span-1">
+                      <label class="text-xs font-label font-semibold text-light-primary">Kategori Kustom <span class="text-light-error">*</span></label>
+                      <input
+                        v-model="customCategory"
+                        type="text"
+                        placeholder="e.g. Handmade Candles"
+                        class="w-full bg-light-surface-container-lowest border border-light-primary text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary"
+                      />
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nomor / Kode Booth</label>
+                      <input
+                        v-model="newTenant.booth_number"
+                        type="text"
+                        placeholder="e.g. A-01"
+                        class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary font-mono"
+                      />
+                    </div>
+                    <div class="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                      <div class="flex items-center justify-between flex-wrap gap-2">
+                        <label class="text-xs font-label font-semibold text-light-on-surface-variant">Skema Bagi Hasil (3-Way Split)</label>
+                        <span class="font-mono text-mono-sm px-2.5 py-0.5 rounded-full bg-light-surface-container-lowest text-light-on-surface border border-light-outline-variant tabular-nums font-semibold">
+                          Total Potongan: <strong class="text-light-error font-bold">{{ newTenantTotalCut }}%</strong> • Hak Tenant: <strong class="text-light-primary font-bold">{{ newTenantTakeHome }}%</strong>
+                        </span>
+                      </div>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                          <label class="text-[11px] font-label font-semibold text-light-secondary flex items-center justify-between">
+                            <span>Bagian Venue %</span>
+                            <span class="text-light-on-surface-variant font-normal">Lokasi / Tempat</span>
+                          </label>
+                          <input
+                            v-model.number="newTenant.venue_share_percent"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary tabular-nums font-mono"
+                          />
+                        </div>
+                        <div class="space-y-1">
+                          <label class="text-[11px] font-label font-semibold text-light-secondary flex items-center justify-between">
+                            <span>Bagian Organizer %</span>
+                            <span class="text-light-on-surface-variant font-normal">Penyelenggara / EO</span>
+                          </label>
+                          <input
+                            v-model.number="newTenant.organizer_share_percent"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary tabular-nums font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="space-y-1 sm:col-span-2 lg:col-span-3">
+                      <label class="text-xs font-label font-semibold text-light-on-surface-variant">Info Rekening Bank (untuk settlement)</label>
+                      <input
+                        v-model="newTenant.bank_info"
+                        type="text"
+                        placeholder="e.g. BCA 1234567890 a/n Budi"
+                        class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary"
+                      />
+                    </div>
+                  </div>
+                  <div v-if="addTenantError" class="text-sm text-light-error bg-light-error-container/20 border border-light-error/30 rounded-md px-3 py-2">
+                    {{ addTenantError }}
+                  </div>
+                  <div class="flex justify-end gap-3 pt-1">
+                    <button
+                      @click="showAddTenantForm = false"
+                      type="button"
+                      class="px-4 py-2 rounded-md text-sm font-label text-light-on-surface-variant hover:bg-light-surface-container transition-colors cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      @click="addTenant"
+                      :disabled="addingTenant"
+                      type="button"
+                      class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-60 text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
+                    >
+                      <Loader2 v-if="addingTenant" class="w-4 h-4 animate-spin" />
+                      <Plus v-else class="w-4 h-4" />
+                      Tambah ke Lineup
+                    </button>
+                  </div>
+                </div>
+              </Transition>
             </div>
-          </div>
 
-          <!-- Lineup Error / Alert Banner -->
-          <div
-            v-if="lineupError"
-            class="flex items-start gap-3 bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-rose-300 text-sm"
-          >
-            <AlertCircle class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-            <div class="flex-1">
-              <p class="font-semibold text-rose-200">Pemberitahuan Lineup</p>
-              <p class="text-xs text-rose-300/90 mt-0.5 leading-relaxed">{{ lineupError }}</p>
+            <!-- Tenant List Content -->
+            <div v-if="loadingTenants" class="flex justify-center py-10">
+              <Loader2 class="w-7 h-7 text-light-primary animate-spin" />
             </div>
-            <button
-              @click="lineupError = ''"
-              class="text-rose-400 hover:text-rose-200 p-1 rounded-lg hover:bg-rose-500/20 transition-colors cursor-pointer shrink-0"
-              title="Tutup pemberitahuan"
-            >
-              <X class="w-4 h-4" />
-            </button>
-          </div>
+            <div v-else-if="tenants.length === 0" class="text-center py-12 text-light-on-surface-variant text-sm font-body">
+              Belum ada booth/tenant terdaftar di event ini. Gunakan tombol "+ Tugaskan Brand dari Database" atau "+ Input Booth Manual" di atas.
+            </div>
+            <div v-else>
+              <!-- Desktop / Tablet Table View (>= 768px: hidden on mobile) -->
+              <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-light-surface-container-low border-b border-light-outline-variant">
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Booth #</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Brand &amp; Kategori</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Skema Bagi Hasil</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Portal &amp; WhatsApp</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-light-outline-variant">
+                    <tr
+                      v-for="tenant in tenants"
+                      :key="tenant.id"
+                      class="hover:bg-light-surface-container-low transition-colors duration-state-change ease-state-change"
+                    >
+                      <td class="py-gutter-md px-gutter-md">
+                        <span class="font-mono text-mono-sm px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container text-light-on-surface font-semibold">
+                          {{ tenant.booth_number || '—' }}
+                        </span>
+                      </td>
+                      <td class="py-gutter-md px-gutter-md">
+                        <p class="font-label text-label-lg font-bold text-light-on-surface">{{ tenant.name }}</p>
+                        <p class="font-body text-body-sm text-light-on-surface-variant">{{ tenant.category || 'Umum' }}</p>
+                      </td>
+                      <td class="py-gutter-md px-gutter-md">
+                        <div class="flex flex-wrap items-center gap-gutter-xs">
+                          <span class="font-mono text-mono-sm text-light-on-surface tabular-nums">
+                            Venue {{ tenant.venue_share_percent ?? 10 }}% / EO {{ tenant.organizer_share_percent ?? 0 }}% • <strong class="text-light-primary font-bold">Hak Tenant {{ 100 - (Number(tenant.venue_share_percent ?? 10) + Number(tenant.organizer_share_percent ?? 0)) }}%</strong>
+                          </span>
+                          <span
+                            v-if="Number(tenant.venue_share_percent) !== Number(selectedEvent?.venue_share_percent) || Number(tenant.organizer_share_percent) !== Number(selectedEvent?.organizer_share_percent)"
+                            class="px-gutter-xs py-0.5 rounded-sm bg-light-tertiary-container text-light-on-tertiary-container font-label text-label-sm font-semibold"
+                          >
+                            Override
+                          </span>
+                        </div>
+                      </td>
+                      <td class="py-gutter-md px-gutter-md">
+                        <div class="flex items-center gap-gutter-xs">
+                          <!-- Salin Undangan WA -->
+                          <button
+                            type="button"
+                            @click="copyTenantPortalInvite(tenant)"
+                            :class="copiedInviteId === tenant.id
+                              ? 'bg-light-secondary-container text-light-primary border border-light-primary'
+                              : 'bg-light-secondary-container text-light-on-secondary-container hover:bg-light-surface-variant'"
+                            class="px-gutter-sm py-gutter-xs rounded-sm font-label text-label-sm shrink-0 cursor-pointer transition-colors inline-flex items-center gap-1 font-semibold"
+                            :title="`Salin format pesan undangan portal WhatsApp untuk ${tenant.name}`"
+                          >
+                            <Check v-if="copiedInviteId === tenant.id" class="w-3.5 h-3.5 text-light-primary" />
+                            <span v-else class="material-symbols-outlined text-[14px]">chat</span>
+                            <span>{{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}</span>
+                          </button>
 
-          <!-- Add Tenant Form (collapsible) -->
-          <Transition
-            enter-active-class="transition-all duration-200 ease-out"
-            enter-from-class="opacity-0 -translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition-all duration-150 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 -translate-y-2"
-          >
-            <div v-if="showAddTenantForm" class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 space-y-4">
-              <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">New Tenant Details</h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-400">Tenant Name <span class="text-rose-400">*</span></label>
-                  <input
-                    v-model="newTenant.name"
-                    type="text"
-                    placeholder="e.g. Warung Kopi Josss"
-                    class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-500"
-                  />
-                </div>
-                <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-400">Category <span class="text-rose-400">*</span></label>
-                  <select
-                    v-model="selectedCategory"
-                    class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  >
-                    <option v-for="cat in PRESET_CATEGORIES" :key="cat" :value="cat">
-                      {{ cat }}
-                    </option>
-                  </select>
-                </div>
-                <div v-if="selectedCategory === 'Other (Custom)'" class="space-y-1 sm:col-span-2 lg:col-span-1">
-                  <label class="text-xs font-medium text-amber-400">Custom Category <span class="text-rose-400">*</span></label>
-                  <input
-                    v-model="customCategory"
-                    type="text"
-                    placeholder="e.g. Handmade Candles"
-                    class="w-full bg-slate-700 border border-amber-500/50 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-500"
-                  />
-                </div>
-                <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-400">Booth #</label>
-                  <input
-                    v-model="newTenant.booth_number"
-                    type="text"
-                    placeholder="e.g. A-12"
-                    class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-500"
-                  />
-                </div>
-                <div class="space-y-1.5 sm:col-span-2 lg:col-span-3">
-                  <div class="flex items-center justify-between flex-wrap gap-2">
-                    <label class="text-xs font-medium text-slate-400">Revenue Split (3-Way)</label>
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                      Total Potongan: <strong class="text-amber-400">{{ newTenantTotalCut }}%</strong> • Hak Tenant: <strong class="text-emerald-400">{{ newTenantTakeHome }}%</strong>
+                          <!-- Buka WA Chat jika ada nomor HP -->
+                          <a
+                            v-if="getTenantWhatsappUrl(tenant)"
+                            :href="getTenantWhatsappUrl(tenant)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-7 h-7 rounded-sm bg-light-surface-container-lowest border border-light-outline-variant text-light-primary inline-flex items-center justify-center hover:bg-light-surface-container-low shrink-0 cursor-pointer"
+                            :title="`Buka chat WhatsApp ke ${tenant.name}`"
+                          >
+                            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">chat</span>
+                          </a>
+
+                          <!-- Salin Raw Link Portal -->
+                          <button
+                            type="button"
+                            @click="copyPortalLink(tenant)"
+                            class="px-gutter-xs py-gutter-xs font-label text-label-sm text-light-primary hover:underline shrink-0 cursor-pointer inline-flex items-center gap-1"
+                            title="Salin raw URL link portal tenant"
+                          >
+                            <Check v-if="copiedId === tenant.id" class="w-3.5 h-3.5 text-light-primary" />
+                            <Copy v-else class="w-3.5 h-3.5 text-light-primary" />
+                            <span>{{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}</span>
+                          </button>
+                        </div>
+                      </td>
+                      <td class="py-gutter-md px-gutter-md text-right">
+                        <div class="inline-flex items-center gap-gutter-xs shrink-0">
+                          <button
+                            type="button"
+                            @click="openEditTenant(tenant)"
+                            class="px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-on-surface hover:bg-light-surface-container-low transition-colors cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            @click="removeTenantFromLineup(tenant)"
+                            class="px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-tertiary hover:bg-light-tertiary-container hover:text-light-on-tertiary-container transition-colors cursor-pointer"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Mobile Stacked Card View (< 768px: md:hidden) -->
+              <div class="md:hidden flex flex-col gap-gutter-md p-gutter-md">
+                <article
+                  v-for="tenant in tenants"
+                  :key="tenant.id"
+                  class="p-gutter-lg rounded-lg bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-md"
+                >
+                  <div class="flex items-start justify-between gap-gutter-sm">
+                    <div class="flex items-center gap-gutter-sm min-w-0">
+                      <span class="shrink-0 font-mono text-mono-sm px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container text-light-on-surface font-semibold">
+                        {{ tenant.booth_number || '—' }}
+                      </span>
+                      <div class="min-w-0">
+                        <h3 class="font-title text-title-md font-bold text-light-on-surface truncate">{{ tenant.name }}</h3>
+                        <span class="font-body text-body-sm text-light-on-surface-variant">{{ tenant.category || 'Umum' }}</span>
+                      </div>
+                    </div>
+                    <span
+                      v-if="Number(tenant.venue_share_percent) !== Number(selectedEvent?.venue_share_percent) || Number(tenant.organizer_share_percent) !== Number(selectedEvent?.organizer_share_percent)"
+                      class="shrink-0 px-gutter-sm py-0.5 rounded-sm bg-light-tertiary-container text-light-on-tertiary-container font-label text-label-sm font-semibold"
+                    >
+                      Override
                     </span>
                   </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="space-y-1">
-                      <label class="text-[11px] font-medium text-violet-400 flex items-center justify-between">
-                        <span>Venue Share %</span>
-                        <span class="text-slate-500 font-normal">Lokasi / Tempat</span>
-                      </label>
-                      <input
-                        v-model.number="newTenant.venue_share_percent"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.5"
-                        class="w-full bg-slate-700 border border-slate-600 focus:border-violet-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30"
-                      />
-                    </div>
-                    <div class="space-y-1">
-                      <label class="text-[11px] font-medium text-amber-400 flex items-center justify-between">
-                        <span>Organizer Share %</span>
-                        <span class="text-slate-500 font-normal">Penyelenggara / EO</span>
-                      </label>
-                      <input
-                        v-model.number="newTenant.organizer_share_percent"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.5"
-                        class="w-full bg-slate-700 border border-slate-600 focus:border-amber-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
-                      />
-                    </div>
+
+                  <!-- Split Schema box -->
+                  <div class="p-gutter-sm rounded-sm bg-light-surface-container-low">
+                    <span class="font-mono text-mono-sm text-light-on-surface tabular-nums block">
+                      Venue {{ tenant.venue_share_percent ?? 10 }}% / EO {{ tenant.organizer_share_percent ?? 0 }}% • <strong class="text-light-primary font-bold">Hak Tenant {{ 100 - (Number(tenant.venue_share_percent ?? 10) + Number(tenant.organizer_share_percent ?? 0)) }}%</strong>
+                    </span>
                   </div>
-                </div>
-                <div class="space-y-1 sm:col-span-2 lg:col-span-3">
-                  <label class="text-xs font-medium text-slate-400">Bank Info (for payout)</label>
-                  <input
-                    v-model="newTenant.bank_info"
-                    type="text"
-                    placeholder="e.g. BCA 1234567890 a/n Budi"
-                    class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-500"
-                  />
-                </div>
-              </div>
-              <div v-if="addTenantError" class="text-sm text-rose-400 bg-rose-400/10 border border-rose-400/30 rounded-lg px-3 py-2">
-                {{ addTenantError }}
-              </div>
-              <div class="flex justify-end gap-3">
-                <button
-                  @click="showAddTenantForm = false"
-                  class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  @click="addTenant"
-                  :disabled="addingTenant"
-                  class="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors"
-                >
-                  <Loader2 v-if="addingTenant" class="w-4 h-4 animate-spin" />
-                  <Plus v-else class="w-4 h-4" />
-                  Add Tenant
-                </button>
-              </div>
-            </div>
-          </Transition>
 
-          <!-- Tenant List Table -->
-          <div v-if="loadingTenants" class="flex justify-center py-10">
-            <Loader2 class="w-7 h-7 text-slate-400 animate-spin" />
-          </div>
-          <div v-else-if="tenants.length === 0" class="text-center py-10 text-slate-500 text-sm">
-            No tenants for this event yet. Add one above.
-          </div>
-          <div v-else class="space-y-4">
-            <!-- Desktop / Tablet Table View (>= 768px) -->
-            <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="bg-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                    <th class="px-4 py-3 text-left">Booth #</th>
-                    <th class="px-4 py-3 text-left">Name</th>
-                    <th class="px-4 py-3 text-left">Category</th>
-                    <th class="px-4 py-3 text-center">Share % (Venue / EO)</th>
-                    <th class="px-4 py-3 text-center">Payout Status</th>
-                    <th class="px-4 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800">
-                  <tr
-                    v-for="tenant in tenants"
-                    :key="tenant.id"
-                    class="hover:bg-slate-800/50 transition-colors"
-                  >
-                    <td class="px-4 py-3 font-mono text-slate-300">{{ tenant.booth_number || '—' }}</td>
-                    <td class="px-4 py-3 font-medium text-slate-100">{{ tenant.name }}</td>
-                    <td class="px-4 py-3 text-slate-400">{{ tenant.category || '—' }}</td>
-                    <td class="px-4 py-3 text-center font-medium">
-                      <span class="text-violet-400">{{ tenant.venue_share_percent ?? 10 }}%</span>
-                      <span class="text-slate-500 mx-1">/</span>
-                      <span class="text-amber-400">{{ tenant.organizer_share_percent ?? 0 }}%</span>
-                      <span class="block text-[10px] text-slate-400 font-normal">Total: {{ (Number(tenant.venue_share_percent ?? 10) + Number(tenant.organizer_share_percent ?? 0)) }}%</span>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                      <span
-                        :class="tenant.payout_status === 'SETTLED'
-                          ? 'bg-emerald-400/15 text-emerald-400 border border-emerald-400/30'
-                          : 'bg-amber-400/15 text-amber-400 border border-amber-400/30'"
-                        class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                      >
-                        {{ tenant.payout_status }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap whitespace-nowrap">
-                        <button
-                          @click="openEditTenant(tenant)"
-                          class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
-                          title="Edit tenant / share override"
-                        >
-                          <Pencil class="w-3.5 h-3.5" />
-                          <span>Edit</span>
-                        </button>
-
-                        <!-- Undangan Portal WA (Copy formatted text) -->
-                        <button
-                          @click="copyTenantPortalInvite(tenant)"
-                          :class="copiedInviteId === tenant.id
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : 'bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 hover:border-emerald-500/40'"
-                          class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
-                          :title="`Salin format pesan undangan portal WhatsApp untuk ${tenant.name}`"
-                        >
-                          <Check v-if="copiedInviteId === tenant.id" class="w-3.5 h-3.5 text-emerald-400" />
-                          <MessageSquare v-else class="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}</span>
-                        </button>
-
-                        <!-- Buka Chat WA Langsung jika nomor WhatsApp terdaftar -->
-                        <a
-                          v-if="getTenantWhatsappUrl(tenant)"
-                          :href="getTenantWhatsappUrl(tenant)"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="flex items-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
-                          :title="`Buka chat WhatsApp ke ${tenant.name}`"
-                        >
-                          <ExternalLink class="w-3 h-3" />
-                          <span>Buka WA</span>
-                        </a>
-
-                        <!-- Salin Raw Link Portal -->
-                        <button
-                          @click="copyPortalLink(tenant)"
-                          :class="copiedId === tenant.id
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
-                          class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
-                          title="Salin raw URL link portal tenant"
-                        >
-                          <Check v-if="copiedId === tenant.id" class="w-3.5 h-3.5" />
-                          <Copy v-else class="w-3.5 h-3.5" />
-                          <span>{{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}</span>
-                        </button>
-
-                        <!-- Hapus dari Lineup -->
-                        <button
-                          @click="removeTenantFromLineup(tenant)"
-                          class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
-                          title="Hapus tenant dari lineup event ini"
-                        >
-                          <Trash2 class="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Mobile Stacked Card View (< 768px) -->
-            <div class="md:hidden space-y-3">
-              <div
-                v-for="tenant in tenants"
-                :key="tenant.id"
-                class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3"
-              >
-                <!-- Card Header: Booth + Name + Payout Status -->
-                <div class="flex items-start justify-between gap-2">
-                  <div class="space-y-1 min-w-0 flex-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-amber-400 border border-slate-700">
-                        #{{ tenant.booth_number || '—' }}
-                      </span>
-                      <h4 class="font-bold text-slate-100 text-sm truncate">{{ tenant.name }}</h4>
-                    </div>
-                    <p class="text-xs text-slate-400">{{ tenant.category || 'Umum' }}</p>
+                  <!-- Mobile Actions Grid -->
+                  <div class="grid grid-cols-2 gap-gutter-xs">
+                    <button
+                      type="button"
+                      @click="copyTenantPortalInvite(tenant)"
+                      :class="copiedInviteId === tenant.id
+                        ? 'bg-light-secondary-container text-light-primary border border-light-primary'
+                        : 'bg-light-secondary-container text-light-on-secondary-container'"
+                      class="py-gutter-sm px-gutter-sm rounded-sm font-label text-label-sm font-semibold text-center cursor-pointer"
+                    >
+                      {{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}
+                    </button>
+                    <a
+                      v-if="getTenantWhatsappUrl(tenant)"
+                      :href="getTenantWhatsappUrl(tenant)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-primary flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span class="material-symbols-outlined text-[15px]">chat</span>
+                      <span>Buka WA</span>
+                    </a>
+                    <button
+                      v-else
+                      type="button"
+                      @click="copyPortalLink(tenant)"
+                      class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-primary text-center cursor-pointer"
+                    >
+                      {{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}
+                    </button>
+                    <button
+                      type="button"
+                      @click="openEditTenant(tenant)"
+                      class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-on-surface text-center cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      @click="removeTenantFromLineup(tenant)"
+                      class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-tertiary text-center cursor-pointer"
+                    >
+                      Hapus
+                    </button>
                   </div>
-                  <span
-                    :class="tenant.payout_status === 'SETTLED'
-                      ? 'bg-emerald-400/15 text-emerald-400 border border-emerald-400/30'
-                      : 'bg-amber-400/15 text-amber-400 border border-amber-400/30'"
-                    class="shrink-0 inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border"
-                  >
-                    {{ tenant.payout_status }}
-                  </span>
-                </div>
-
-                <!-- Revenue Split Info -->
-                <div class="bg-slate-900/80 border border-slate-800/80 rounded-lg p-2.5 text-xs flex items-center justify-between">
-                  <span class="text-slate-400">Bagi Hasil:</span>
-                  <span class="font-medium">
-                    <span class="text-violet-400">Venue {{ tenant.venue_share_percent ?? 10 }}%</span>
-                    <span class="text-slate-500 mx-1">/</span>
-                    <span class="text-amber-400">EO {{ tenant.organizer_share_percent ?? 0 }}%</span>
-                    <span class="text-slate-400 ml-1.5">(Total: {{ (Number(tenant.venue_share_percent ?? 10) + Number(tenant.organizer_share_percent ?? 0)) }}%)</span>
-                  </span>
-                </div>
-
-                <!-- Action Row: Undangan WA, Buka WA, Portal, Edit, Delete -->
-                <div class="flex items-center gap-1.5 flex-wrap pt-1">
-                  <!-- Undangan Portal WA -->
-                  <button
-                    @click="copyTenantPortalInvite(tenant)"
-                    :class="copiedInviteId === tenant.id
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                      : 'bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 hover:border-emerald-500/40'"
-                    class="flex-1 flex items-center justify-center gap-1 text-xs font-semibold py-2 px-2.5 rounded-lg border transition-colors cursor-pointer touch-manipulation select-none"
-                    :title="`Salin format pesan undangan portal WhatsApp untuk ${tenant.name}`"
-                  >
-                    <Check v-if="copiedInviteId === tenant.id" class="w-3.5 h-3.5 text-emerald-400" />
-                    <MessageSquare v-else class="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}</span>
-                  </button>
-
-                  <!-- Buka WA Chat jika ada nomor HP -->
-                  <a
-                    v-if="getTenantWhatsappUrl(tenant)"
-                    :href="getTenantWhatsappUrl(tenant)"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="flex items-center justify-center gap-1 text-xs font-semibold py-2 px-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer touch-manipulation select-none"
-                    :title="`Buka chat WhatsApp ke ${tenant.name}`"
-                  >
-                    <ExternalLink class="w-3.5 h-3.5" />
-                    <span>Buka WA</span>
-                  </a>
-
-                  <!-- Salin Raw Link Portal -->
-                  <button
-                    @click="copyPortalLink(tenant)"
-                    :class="copiedId === tenant.id
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
-                    class="flex items-center justify-center gap-1 text-xs font-semibold py-2 px-2.5 rounded-lg border transition-colors cursor-pointer touch-manipulation select-none"
-                    title="Salin raw URL link portal tenant"
-                  >
-                    <Check v-if="copiedId === tenant.id" class="w-3.5 h-3.5" />
-                    <Copy v-else class="w-3.5 h-3.5" />
-                    <span>{{ copiedId === tenant.id ? 'Copied' : 'Portal' }}</span>
-                  </button>
-
-                  <!-- Edit Tenant -->
-                  <button
-                    @click="openEditTenant(tenant)"
-                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer touch-manipulation select-none"
-                    title="Edit tenant / share override"
-                  >
-                    <Pencil class="w-3.5 h-3.5" />
-                  </button>
-
-                  <!-- Hapus dari Lineup -->
-                  <button
-                    @click="removeTenantFromLineup(tenant)"
-                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer touch-manipulation select-none"
-                    title="Hapus tenant dari lineup event ini"
-                  >
-                    <Trash2 class="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                </article>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </template>
 
-      </template>
-
-      <!-- Placeholder when no event is selected (in Tab 2) -->
-      <div v-else class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
-        <Building2 class="w-10 h-10 text-slate-700 mx-auto" />
-        <p class="text-slate-300 text-base font-semibold">Pilih atau Buat Event Baru</p>
-        <p class="text-slate-500 text-sm">Gunakan tombol "Create New Event" di atas untuk memulai lineup tenant event baru.</p>
+        <!-- ── Placeholder when no event is selected (in Tab 2) ────────── -->
+        <div v-else class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant p-12 text-center space-y-3">
+          <Building2 class="w-10 h-10 text-light-on-surface-variant mx-auto" />
+          <p class="font-headline text-headline-sm font-bold text-light-on-surface">Pilih atau Buat Event Baru</p>
+          <p class="font-body text-body-sm text-light-on-surface-variant">Gunakan tombol "+ Buat Event Baru" di atas untuk memulai lineup tenant event baru.</p>
+        </div>
       </div>
-    </div>
-
       <!-- ════════════════════════════════════════════════════════════════
            TAB 3: MASTER TENANT DIRECTORY
       ═════════════════════════════════════════════════════════════════ -->
@@ -3468,13 +3482,13 @@ async function copyTenantWaSummary(row) {
     <Transition name="modal">
       <div v-if="editingTenantModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeEditTenantModal" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl z-10 overflow-hidden">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-800/40">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-lg w-full max-w-lg shadow-2xl z-10 overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-light-outline-variant bg-light-surface-container-low">
             <div>
-              <p class="text-xs text-sky-400 font-semibold uppercase tracking-wider">Tenant Override Settings</p>
-              <h3 class="font-bold text-slate-100 text-base mt-0.5">{{ editingTenant?.name }}</h3>
+              <p class="font-label text-label-sm text-light-primary font-bold uppercase tracking-wider">Tenant Override Settings</p>
+              <h3 class="font-headline text-headline-md text-light-on-surface font-bold mt-0.5">{{ editingTenant?.name }}</h3>
             </div>
-            <button @click="closeEditTenantModal" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <button @click="closeEditTenantModal" class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-sm transition-colors">
               <X class="w-5 h-5" />
             </button>
           </div>
@@ -3482,29 +3496,29 @@ async function copyTenantWaSummary(row) {
           <div class="p-6 pb-24 sm:pb-6 space-y-4 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Tenant Name <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Tenant Name <span class="text-light-error">*</span></label>
                 <input
                   v-model="editingTenant.name"
                   type="text"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary"
                 />
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Booth #</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Booth #</label>
                 <input
                   v-model="editingTenant.booth_number"
                   type="text"
                   placeholder="e.g. A-12"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary font-mono"
                 />
               </div>
 
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Category <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Category <span class="text-light-error">*</span></label>
                 <select
                   v-model="editTenantCategory"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary cursor-pointer"
                 >
                   <option v-for="cat in PRESET_CATEGORIES" :key="cat" :value="cat">
                     {{ cat }}
@@ -3513,145 +3527,146 @@ async function copyTenantWaSummary(row) {
               </div>
 
               <div v-if="editTenantCategory === 'Other (Custom)'" class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-amber-400">Custom Category <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-primary">Custom Category <span class="text-light-error">*</span></label>
                 <input
                   v-model="editTenantCustomCategory"
                   type="text"
                   placeholder="e.g. Handmade Candles"
-                  class="w-full bg-slate-800 border border-amber-500/50 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  class="w-full bg-light-surface-container-lowest border border-light-primary text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary"
                 />
               </div>
 
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Bank Info (for payout)</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Bank Info (for payout)</label>
                 <input
                   v-model="editingTenant.bank_info"
                   type="text"
                   placeholder="e.g. BCA 1234567890 a/n Budi"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary"
                 />
               </div>
 
               <!-- Revenue Split 3-Way Override -->
-              <div class="space-y-2 sm:col-span-2 bg-slate-800/50 border border-slate-700/80 rounded-xl p-4">
+              <div class="space-y-2 sm:col-span-2 bg-light-surface-container-low border border-light-outline-variant rounded-md p-4">
                 <div class="flex items-center justify-between flex-wrap gap-2">
-                  <label class="text-xs font-semibold text-slate-300">Custom Revenue Split (3-Way)</label>
-                  <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-700">
-                    Total Potongan: <strong class="text-amber-400">{{ editTenantTotalCut }}%</strong> • Hak Tenant: <strong class="text-emerald-400">{{ editTenantTakeHome }}%</strong>
+                  <label class="text-xs font-label font-semibold text-light-on-surface">Custom Revenue Split (3-Way)</label>
+                  <span class="font-mono text-mono-sm px-2.5 py-0.5 rounded-full bg-light-surface-container-lowest text-light-on-surface border border-light-outline-variant tabular-nums font-semibold">
+                    Total Potongan: <strong class="text-light-error font-bold">{{ editTenantTotalCut }}%</strong> • Hak Tenant: <strong class="text-light-primary font-bold">{{ editTenantTakeHome }}%</strong>
                   </span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div class="space-y-1">
-                    <label class="text-[11px] font-medium text-violet-400">Venue Share %</label>
+                    <label class="text-[11px] font-label font-semibold text-light-secondary">Venue Share %</label>
                     <input
                       v-model.number="editingTenant.venue_share_percent"
                       type="number"
                       min="0"
                       max="100"
                       step="0.5"
-                      class="w-full bg-slate-700 border border-slate-600 focus:border-violet-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30"
+                      class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary tabular-nums font-mono"
                     />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[11px] font-medium text-amber-400">Organizer Share %</label>
+                    <label class="text-[11px] font-label font-semibold text-light-secondary">Organizer Share %</label>
                     <input
                       v-model.number="editingTenant.organizer_share_percent"
                       type="number"
                       min="0"
                       max="100"
                       step="0.5"
-                      class="w-full bg-slate-700 border border-slate-600 focus:border-amber-500 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                      class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary tabular-nums font-mono"
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div v-if="editTenantError" class="text-sm text-rose-400 bg-rose-400/10 border border-rose-400/30 rounded-lg px-3 py-2">
+            <div v-if="editTenantError" class="text-sm text-light-error bg-light-error-container/20 border border-light-error/30 rounded-md px-3 py-2">
               {{ editTenantError }}
             </div>
 
             <div class="flex justify-end gap-3 pt-2">
               <button
                 @click="closeEditTenantModal"
-                class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                type="button"
+                class="px-4 py-2 rounded-md font-label text-label-md text-light-on-surface-variant hover:bg-light-surface-container-low transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 @click="saveEditTenant"
                 :disabled="savingEditTenant"
-                class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+                type="button"
+                class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-60 text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
               >
                 <Loader2 v-if="savingEditTenant" class="w-4 h-4 animate-spin" />
                 <Check v-else class="w-4 h-4" />
-                Save Changes
+                Simpan Perubahan
               </button>
             </div>
           </div>
         </div>
       </div>
     </Transition>
-
     <!-- ── Assign from Master to Lineup Modal ──────────────────────────── -->
     <Transition name="modal">
       <div v-if="showAssignLineupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showAssignLineupModal = false" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl shadow-2xl z-10 overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-lg w-full max-w-3xl shadow-2xl z-10 overflow-hidden flex flex-col max-h-[90vh]">
           <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-800/40">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-light-outline-variant bg-light-surface-container-low">
             <div>
-              <p class="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Event Lineup Builder</p>
-              <h3 class="font-bold text-slate-100 text-lg mt-0.5">Assign Brands from Master Directory</h3>
+              <p class="font-label text-label-sm text-light-primary font-bold uppercase tracking-wider">Event Lineup Builder</p>
+              <h3 class="font-headline text-headline-lg text-light-on-surface font-bold mt-0.5">Tugaskan Brand dari Master Directory</h3>
             </div>
-            <button @click="showAssignLineupModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <button @click="showAssignLineupModal = false" class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-sm transition-colors">
               <X class="w-5 h-5" />
             </button>
           </div>
 
           <!-- Filters bar -->
-          <div class="p-4 border-b border-slate-800 bg-slate-800/20 flex flex-wrap gap-3 items-center justify-between">
+          <div class="p-4 border-b border-light-outline-variant bg-light-surface-container-low flex flex-wrap gap-3 items-center justify-between">
             <div class="flex items-center gap-3 flex-1 min-w-[240px]">
               <div class="relative flex-1">
-                <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-light-on-surface-variant pointer-events-none" />
                 <input
                   v-model="assignLineupSearch"
                   type="text"
                   placeholder="Cari brand master atau kategori…"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-500"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-light-primary focus:border-light-primary placeholder:text-light-on-surface-variant"
                 />
               </div>
               <div class="relative min-w-[170px]">
                 <select
                   v-model="assignLineupCategory"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-8 cursor-pointer"
+                  class="w-full bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-light-primary pr-8 cursor-pointer"
                 >
                   <option value="ALL">Semua Kategori</option>
                   <option v-for="cat in PRESET_CATEGORIES.filter(c => c !== 'Other (Custom)')" :key="cat" :value="cat">
                     {{ cat }}
                   </option>
                 </select>
-                <ChevronDown class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-light-on-surface-variant pointer-events-none" />
               </div>
             </div>
 
-            <div class="text-xs text-slate-400">
-              Target: <strong class="text-white">{{ selectedEvent?.name }}</strong>
+            <div class="text-xs text-light-on-surface-variant font-label">
+              Target Event: <strong class="text-light-on-surface font-bold">{{ selectedEvent?.name }}</strong>
             </div>
           </div>
 
           <!-- Body / List -->
           <div class="flex-1 overflow-y-auto p-4 space-y-3">
-            <div v-if="filteredLineupMasterTenants.length === 0" class="text-center py-12 text-slate-500 text-sm">
+            <div v-if="filteredLineupMasterTenants.length === 0" class="text-center py-12 text-light-on-surface-variant text-sm font-body">
               Tidak ada brand master yang cocok.
             </div>
 
             <div v-else class="space-y-2">
-              <div class="flex items-center justify-between px-2 text-xs text-slate-400 mb-1">
+              <div class="flex items-center justify-between px-2 text-xs text-light-on-surface-variant mb-1 font-label">
                 <button
                   type="button"
                   @click="toggleSelectAllLineupMasters"
-                  class="text-emerald-400 hover:underline font-semibold cursor-pointer"
+                  class="text-light-primary hover:underline font-semibold cursor-pointer"
                 >
                   Pilih / Batal Semua yang Tersedia
                 </button>
@@ -3662,12 +3677,12 @@ async function copyTenantWaSummary(row) {
                 v-for="m in filteredLineupMasterTenants"
                 :key="m.id"
                 :class="[
-                  'border rounded-xl p-3 flex items-center gap-3 transition-colors',
+                  'border rounded-md p-3 flex items-center gap-3 transition-colors',
                   activeEventMasterIds.has(m.id) || activeEventTenantNames.has(m.name.toLowerCase().trim())
-                    ? 'bg-slate-800/30 border-slate-800 opacity-60'
+                    ? 'bg-light-surface-container-low border-light-outline-variant opacity-60'
                     : selectedMasterIds.has(m.id)
-                      ? 'bg-emerald-500/10 border-emerald-500/40'
-                      : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'
+                      ? 'bg-light-secondary-container/40 border-light-primary'
+                      : 'bg-light-surface-container-lowest border-light-outline-variant hover:bg-light-surface-container-low'
                 ]"
               >
                 <!-- Checkbox -->
@@ -3676,39 +3691,39 @@ async function copyTenantWaSummary(row) {
                   :disabled="activeEventMasterIds.has(m.id) || activeEventTenantNames.has(m.name.toLowerCase().trim())"
                   :checked="selectedMasterIds.has(m.id)"
                   @change="toggleSelectMaster(m)"
-                  class="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 border-slate-600 bg-slate-800 accent-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                  class="w-4 h-4 rounded text-light-primary focus:ring-light-primary border-light-outline-variant bg-light-surface-container-lowest accent-light-primary cursor-pointer disabled:cursor-not-allowed"
                 />
 
                 <!-- Master Info -->
                 <div class="flex-1 min-w-0 cursor-pointer" @click="toggleSelectMaster(m)">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-semibold text-slate-100 text-sm truncate">{{ m.name }}</span>
-                    <span class="text-xs bg-slate-700 text-slate-300 rounded-md px-2 py-0.5">{{ m.category || 'Umum' }}</span>
+                    <span class="font-bold text-light-on-surface text-sm truncate font-label">{{ m.name }}</span>
+                    <span class="text-xs bg-light-surface-container text-light-on-surface-variant rounded-sm px-2 py-0.5 font-label">{{ m.category || 'Umum' }}</span>
                     <span
                       v-if="activeEventMasterIds.has(m.id) || activeEventTenantNames.has(m.name.toLowerCase().trim())"
-                      class="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-md px-1.5 py-0.5"
+                      class="text-[10px] font-semibold bg-light-secondary-container text-light-primary border border-light-primary rounded-sm px-1.5 py-0.5 font-label"
                     >
                       Sudah di Lineup
                     </span>
                   </div>
-                  <div class="flex items-center gap-2 text-xs text-slate-400 mt-1 flex-wrap">
-                    <span class="text-slate-500">Event terakhir:</span>
-                    <span v-if="m.lastEventName" class="text-sky-400 font-semibold">{{ m.lastEventName }}</span>
-                    <span v-else class="text-slate-500 italic">Belum pernah ikut event</span>
-                    <span v-if="m.contact_info" class="text-slate-500">• {{ m.contact_info }}</span>
-                    <span v-if="m.bank_info" class="text-slate-600 font-mono text-[11px]">• {{ m.bank_info }}</span>
+                  <div class="flex items-center gap-2 text-xs text-light-on-surface-variant mt-1 flex-wrap">
+                    <span class="text-light-on-surface-variant">Event terakhir:</span>
+                    <span v-if="m.lastEventName" class="text-light-primary font-semibold">{{ m.lastEventName }}</span>
+                    <span v-else class="text-light-on-surface-variant italic">Belum pernah ikut event</span>
+                    <span v-if="m.contact_info" class="text-light-on-surface-variant">• {{ m.contact_info }}</span>
+                    <span v-if="m.bank_info" class="text-light-on-surface-variant font-mono text-[11px]">• {{ m.bank_info }}</span>
                   </div>
                 </div>
 
                 <!-- Booth Input -->
                 <div v-if="!activeEventMasterIds.has(m.id) && !activeEventTenantNames.has(m.name.toLowerCase().trim())" class="w-28 flex-shrink-0">
-                  <label class="text-[10px] text-slate-400 block mb-0.5">Booth #:</label>
+                  <label class="text-[10px] text-light-on-surface-variant block mb-0.5 font-label">Booth #:</label>
                   <input
                     v-model="lineupAssignBooths[m.id]"
                     type="text"
                     placeholder="e.g. B-01"
                     @focus="selectedMasterIds.add(m.id)"
-                    class="w-full bg-slate-700 border border-slate-600 focus:border-emerald-500 text-slate-100 rounded-lg px-2 py-1 text-xs focus:outline-none"
+                    class="w-full bg-light-surface-container-lowest border border-light-outline-variant focus:border-light-primary text-light-on-surface rounded-sm px-2 py-1 text-xs focus:outline-none font-mono"
                   />
                 </div>
               </div>
@@ -3716,21 +3731,23 @@ async function copyTenantWaSummary(row) {
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-4 pb-8 sm:pb-4 border-t border-slate-800 bg-slate-800/40 flex items-center justify-between flex-wrap gap-3">
-            <span class="text-xs text-slate-400 font-medium">
-              Terpilih: <strong class="text-emerald-400">{{ selectedMasterIds.size }}</strong> brand
+          <div class="px-6 py-4 pb-8 sm:pb-4 border-t border-light-outline-variant bg-light-surface-container-low flex items-center justify-between flex-wrap gap-3">
+            <span class="text-xs text-light-on-surface-variant font-label">
+              Terpilih: <strong class="text-light-primary font-bold">{{ selectedMasterIds.size }}</strong> brand
             </span>
             <div class="flex items-center gap-3">
               <button
                 @click="showAssignLineupModal = false"
-                class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                type="button"
+                class="px-4 py-2 rounded-md text-sm font-label text-light-on-surface-variant hover:bg-light-surface-container transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 @click="confirmAssignMastersToLineup"
                 :disabled="selectedMasterIds.size === 0 || assigningLineup"
-                class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+                type="button"
+                class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-50 text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
               >
                 <Loader2 v-if="assigningLineup" class="w-4 h-4 animate-spin" />
                 <Check v-else class="w-4 h-4" />
@@ -3741,7 +3758,6 @@ async function copyTenantWaSummary(row) {
         </div>
       </div>
     </Transition>
-
     <!-- ── Add Master Tenant Modal ────────────────────────────────────── -->
     <Transition name="modal">
       <div v-if="showAddMasterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
