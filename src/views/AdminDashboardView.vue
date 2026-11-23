@@ -1712,25 +1712,25 @@ async function copyTenantWaSummary(row) {
 </script>
 
 <template>
-  <!-- ── 6-Digit PIN Lock Screen (when locked) ────────────────────────── -->
+    <!-- ── 6-Digit PIN Lock Screen (when locked) ────────────────────────── -->
   <div
     v-if="!isUnlocked"
-    class="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col items-center justify-center p-4 selection:bg-emerald-500/30"
+    class="min-h-screen bg-light-surface text-light-on-surface font-body flex flex-col items-center justify-center p-4 selection:bg-light-primary/20"
   >
     <div class="w-full max-w-sm flex flex-col items-center text-center">
       <!-- Shield / Lock Badge -->
       <div
-        class="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center mb-5 text-emerald-400 shadow-xl shadow-emerald-500/10"
+        class="w-16 h-16 rounded-3xl bg-light-secondary-container border border-light-outline-variant flex items-center justify-center mb-5 text-light-primary shadow-xs"
       >
         <Lock class="w-7 h-7" />
       </div>
 
       <!-- Header Title & Subtitle -->
-      <h1 class="text-2xl font-bold tracking-tight text-white mb-1.5">
-        PopUpPOS <span class="text-emerald-400">Admin</span>
+      <h1 class="text-2xl font-headline font-bold tracking-tight text-light-on-surface mb-1.5">
+        PopUpPOS <span class="text-light-primary">Admin</span>
       </h1>
-      <p class="text-xs text-slate-400 max-w-[280px] leading-relaxed mb-6">
-        Masukkan 6-digit PIN untuk akses dashboard event, settlements & komisi
+      <p class="text-xs font-body text-light-on-surface-variant max-w-[280px] leading-relaxed mb-6">
+        Masukkan 6-digit PIN untuk akses dashboard event, settlements &amp; komisi
       </p>
 
       <!-- PIN Indicators (6 box indicators with glowing dots) -->
@@ -1746,23 +1746,23 @@ async function copyTenantWaSummary(row) {
           :class="[
             'w-11 h-12 rounded-xl border flex items-center justify-center transition-all duration-150',
             enteredPin.length >= i
-              ? 'bg-emerald-500/15 border-emerald-400 shadow-sm shadow-emerald-500/30 scale-105'
-              : 'bg-slate-900 border-slate-800',
+              ? 'bg-light-primary/10 border-light-primary shadow-xs scale-105'
+              : 'bg-light-surface-container-lowest border-light-outline-variant',
           ]"
         >
           <span
             v-if="enteredPin.length >= i"
-            class="w-3 h-3 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"
+            class="w-3 h-3 rounded-full bg-light-primary shadow-xs"
           />
         </div>
       </div>
 
       <!-- Error / Helper Message -->
       <div class="h-6 mb-5 flex items-center justify-center">
-        <p v-if="pinError" class="text-xs font-semibold text-rose-400">
+        <p v-if="pinError" class="text-xs font-semibold text-light-error">
           {{ pinError }}
         </p>
-        <p v-else class="text-[11px] text-slate-500">
+        <p v-else class="text-[11px] font-body text-light-on-surface-variant">
           Ketik langsung di keyboard atau gunakan keypad
         </p>
       </div>
@@ -1774,7 +1774,7 @@ async function copyTenantWaSummary(row) {
           :key="n"
           type="button"
           @click="appendDigit(String(n))"
-          class="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 hover:border-slate-700 text-xl font-bold text-slate-100 flex items-center justify-center transition-all duration-100 shadow-sm cursor-pointer touch-manipulation select-none"
+          class="h-14 rounded-2xl bg-light-surface-container-lowest hover:bg-light-surface-container active:scale-95 border border-light-outline-variant font-headline text-xl font-bold text-light-on-surface flex items-center justify-center transition-all duration-100 shadow-xs cursor-pointer touch-manipulation select-none"
         >
           {{ n }}
         </button>
@@ -1783,7 +1783,7 @@ async function copyTenantWaSummary(row) {
         <button
           type="button"
           @click="clearPin"
-          class="h-14 rounded-2xl bg-slate-900/60 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all duration-100 uppercase tracking-wider cursor-pointer touch-manipulation select-none"
+          class="h-14 rounded-2xl bg-light-surface-container-low hover:bg-light-surface-container active:scale-95 border border-light-outline-variant text-xs font-bold font-label text-light-on-surface-variant hover:text-light-on-surface flex items-center justify-center transition-all duration-100 uppercase tracking-wider cursor-pointer touch-manipulation select-none"
         >
           Clear
         </button>
@@ -1792,7 +1792,7 @@ async function copyTenantWaSummary(row) {
         <button
           type="button"
           @click="appendDigit('0')"
-          class="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 hover:border-slate-700 text-xl font-bold text-slate-100 flex items-center justify-center transition-all duration-100 shadow-sm cursor-pointer touch-manipulation select-none"
+          class="h-14 rounded-2xl bg-light-surface-container-lowest hover:bg-light-surface-container active:scale-95 border border-light-outline-variant font-headline text-xl font-bold text-light-on-surface flex items-center justify-center transition-all duration-100 shadow-xs cursor-pointer touch-manipulation select-none"
         >
           0
         </button>
@@ -1801,7 +1801,7 @@ async function copyTenantWaSummary(row) {
         <button
           type="button"
           @click="deleteDigit"
-          class="h-14 rounded-2xl bg-slate-900/60 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all duration-100 cursor-pointer touch-manipulation select-none"
+          class="h-14 rounded-2xl bg-light-surface-container-low hover:bg-light-surface-container active:scale-95 border border-light-outline-variant text-light-on-surface-variant hover:text-light-on-surface flex items-center justify-center transition-all duration-100 cursor-pointer touch-manipulation select-none"
           title="Hapus"
         >
           <Delete class="w-5 h-5" />
@@ -1813,15 +1813,15 @@ async function copyTenantWaSummary(row) {
         <button
           type="button"
           @click="router.push('/')"
-          class="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+          class="flex items-center gap-2 text-xs font-label font-semibold text-light-on-surface-variant hover:text-light-on-surface bg-light-surface-container-lowest hover:bg-light-surface-container border border-light-outline-variant px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
         >
-          <ArrowLeft class="w-4 h-4 text-emerald-400" />
+          <ArrowLeft class="w-4 h-4 text-light-primary" />
           Kembali ke Kasir
         </button>
         <button
           type="button"
           @click="handleLogout"
-          class="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-rose-400 bg-slate-900/80 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 px-3 py-2 rounded-xl transition-colors cursor-pointer"
+          class="flex items-center gap-1.5 text-xs font-label font-semibold text-light-tertiary hover:bg-light-tertiary-container/30 bg-light-surface-container-lowest border border-light-outline-variant px-3 py-2 rounded-xl transition-colors cursor-pointer"
           title="Keluar dari akun staf"
         >
           <LogOut class="w-3.5 h-3.5" />
@@ -1832,19 +1832,21 @@ async function copyTenantWaSummary(row) {
   </div>
 
   <!-- ── Unlocked Admin Dashboard ──────────────────────────────────────── -->
-  <div v-else class="min-h-screen bg-slate-950 text-slate-100 font-sans">
+  <div v-else class="min-h-screen bg-light-surface text-light-on-surface font-body">
 
     <!-- ── Top Navigation Bar ───────────────────────────────────────────── -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-lg shadow-black/20">
+    <header class="bg-light-surface-container-lowest border-b border-light-outline-variant sticky top-0 z-30 shadow-xs">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-          <ShieldCheck class="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400 shrink-0" />
-          <span class="text-sm sm:text-xl font-bold tracking-tight text-white whitespace-nowrap">PopUpPOS <span class="text-emerald-400">Admin</span></span>
+          <div class="w-9 h-9 rounded-md bg-light-primary text-light-on-primary flex items-center justify-center shrink-0">
+            <ShieldCheck class="w-5 h-5" />
+          </div>
+          <span class="text-base sm:text-xl font-headline font-bold tracking-tight text-light-on-surface whitespace-nowrap">PopUpPOS <span class="text-light-primary">Admin</span></span>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <button
             @click="lockAdmin"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 border border-slate-700 hover:border-amber-500/30 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer shrink-0"
+            class="flex items-center gap-1.5 bg-light-surface-container-low hover:bg-light-surface-container text-light-on-surface-variant hover:text-light-on-surface border border-light-outline-variant px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md font-label font-semibold text-xs transition-colors cursor-pointer shrink-0"
             title="Kunci sesi Admin"
             aria-label="Kunci sesi Admin"
           >
@@ -1853,7 +1855,7 @@ async function copyTenantWaSummary(row) {
           </button>
           <button
             @click="handleLogout"
-            class="flex items-center gap-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl font-semibold text-xs transition-colors cursor-pointer shrink-0"
+            class="flex items-center gap-1.5 bg-light-surface-container-lowest hover:bg-light-tertiary-container hover:text-light-on-tertiary-container text-light-tertiary border border-light-outline-variant px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md font-label font-semibold text-xs transition-colors cursor-pointer shrink-0"
             title="Keluar dari akun staf"
             aria-label="Keluar dari akun staf"
           >
@@ -1862,39 +1864,39 @@ async function copyTenantWaSummary(row) {
           </button>
           <button
             @click="router.push('/')"
-            class="flex items-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer shrink-0"
+            class="flex items-center gap-1.5 sm:gap-2 bg-light-primary hover:bg-light-primary-container text-light-on-primary px-3 py-1.5 sm:px-4 sm:py-2 rounded-md font-label font-bold text-xs sm:text-sm transition-colors cursor-pointer shrink-0 shadow-sm"
           >
             <ShoppingCart class="w-4 h-4" />
             <span class="sm:hidden">Kasir</span>
-            <span class="hidden sm:inline">Cashier View</span>
+            <span class="hidden sm:inline">Terminal Kasir</span>
           </button>
         </div>
       </div>
 
       <!-- ── 3-Tab Workspace Bar ───────────────────────────────────────── -->
-      <div class="border-t border-slate-800/80 bg-slate-900/90 backdrop-blur-md">
+      <div class="border-t border-light-outline-variant bg-light-surface-container-lowest">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2 touch-pan-x overscroll-x-contain">
           <button
             @click="switchAdminTab('overview', $event)"
             :class="activeTab === 'overview'
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
-            class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm border transition-all cursor-pointer whitespace-nowrap shrink-0"
+              ? 'bg-light-primary text-light-on-primary font-bold shadow-xs'
+              : 'text-light-on-surface-variant hover:text-light-on-surface hover:bg-light-surface-container-low border-transparent'"
+            class="flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 rounded-full font-label text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
             <TrendingUp class="w-4 h-4 shrink-0" />
-            <span>Overview & Settlement</span>
+            <span>Ringkasan &amp; Tutup Buku</span>
           </button>
 
           <button
             @click="switchAdminTab('lineup', $event)"
             :class="activeTab === 'lineup'
-              ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
-            class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm border transition-all cursor-pointer whitespace-nowrap shrink-0"
+              ? 'bg-light-primary text-light-on-primary font-bold shadow-xs'
+              : 'text-light-on-surface-variant hover:text-light-on-surface hover:bg-light-surface-container-low border-transparent'"
+            class="flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 rounded-full font-label text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
             <CalendarCheck class="w-4 h-4 shrink-0" />
-            <span>Event & Lineup</span>
-            <span v-if="selectedEvent" class="ml-1 text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal">
+            <span>Kelola Event &amp; Booth</span>
+            <span v-if="selectedEvent" class="ml-1 text-[11px] sm:text-xs px-2 py-0.5 rounded-full bg-light-secondary-container text-light-on-secondary-container font-mono tabular-nums font-bold">
               {{ tenants.length }}
             </span>
           </button>
@@ -1902,13 +1904,13 @@ async function copyTenantWaSummary(row) {
           <button
             @click="switchAdminTab('master', $event)"
             :class="activeTab === 'master'
-              ? 'bg-sky-500/15 text-sky-400 border-sky-500/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'"
-            class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm border transition-all cursor-pointer whitespace-nowrap shrink-0"
+              ? 'bg-light-primary text-light-on-primary font-bold shadow-xs'
+              : 'text-light-on-surface-variant hover:text-light-on-surface hover:bg-light-surface-container-low border-transparent'"
+            class="flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 rounded-full font-label text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
             <Store class="w-4 h-4 shrink-0" />
-            <span>Master Tenant</span>
-            <span class="ml-1 text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal">
+            <span>Database Brand</span>
+            <span class="ml-1 text-[11px] sm:text-xs px-2 py-0.5 rounded-full bg-light-secondary-container text-light-on-secondary-container font-mono tabular-nums font-bold">
               {{ masterTenants.length }}
             </span>
           </button>
@@ -1917,8 +1919,7 @@ async function copyTenantWaSummary(row) {
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-24 sm:pb-12">
-
-      <!-- ════════════════════════════════════════════════════════════════
+<!-- ════════════════════════════════════════════════════════════════
            TAB 1: OVERVIEW & SETTLEMENT
       ═════════════════════════════════════════════════════════════════ -->
       <div v-if="activeTab === 'overview'" class="flex flex-col gap-gutter-xl">
@@ -3146,339 +3147,386 @@ async function copyTenantWaSummary(row) {
           <p class="font-body text-body-sm text-light-on-surface-variant">Gunakan tombol "+ Buat Event Baru" di atas untuk memulai lineup tenant event baru.</p>
         </div>
       </div>
-      <!-- ════════════════════════════════════════════════════════════════
-           TAB 3: MASTER TENANT DIRECTORY
+            <!-- ════════════════════════════════════════════════════════════════
+           TAB 3: MASTER TENANT DIRECTORY (DATABASE BRAND)
       ═════════════════════════════════════════════════════════════════ -->
-      <div v-else-if="activeTab === 'master'" class="space-y-6">
-        <!-- Directory Header -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div v-else-if="activeTab === 'master'" class="flex flex-col gap-gutter-lg">
+
+        <!-- Page Header & Primary CTA -->
+        <header class="flex flex-wrap items-start justify-between gap-gutter-lg">
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-              <Store class="w-5 h-5 sm:w-6 sm:h-6 text-sky-400 shrink-0" />
-              Master Tenant Directory
-            </h2>
-            <p class="text-xs sm:text-sm text-slate-400 mt-1">
-              Katalog master brand & vendor terpusat. Simpan profil vendor sekali dan gunakan berulang kali di berbagai event.
-            </p>
+            <h1 class="font-headline text-headline-lg text-light-on-surface">Database Brand</h1>
+            <p class="font-body text-body-md text-light-on-surface-variant mt-gutter-xs">Direktori induk seluruh brand tenant, kontak PIC, dan rekening pencairan dana.</p>
           </div>
+
           <button
             @click="openAddMasterModal"
-            class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer self-start sm:self-auto shrink-0"
+            type="button"
+            class="inline-flex items-center gap-gutter-sm px-gutter-lg py-gutter-md rounded-md bg-light-primary text-light-on-primary hover:bg-light-primary-container transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-lg font-bold cursor-pointer shadow-xs"
           >
-            <Plus class="w-4 h-4" />
-            Tambah Master Brand
+            <Plus class="w-4 h-4 shrink-0" />
+            <span>+ Tambah Brand Baru</span>
           </button>
-        </section>
+        </header>
 
-        <!-- Search & Filter Bar with Category Pills -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-          <!-- Horizontal Category Filter Pills -->
-          <div class="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+        <!-- Search & Category Filter Bar -->
+        <section aria-label="Pencarian dan filter kategori brand" class="p-gutter-lg rounded-lg bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-md">
+          <div class="flex flex-wrap items-center justify-between gap-gutter-md">
+            <div class="relative flex items-center flex-1 min-w-[280px] max-w-xl">
+              <Search class="w-4 h-4 text-light-on-surface-variant absolute left-gutter-md pointer-events-none" />
+              <input
+                v-model="masterSearchQuery"
+                type="search"
+                placeholder="Cari nama brand, PIC, Instagram, atau nomor rekening..."
+                class="w-full pl-9 pr-gutter-md py-gutter-sm rounded-md bg-light-surface-container-low border border-light-outline-variant text-body-md font-body text-light-on-surface placeholder:text-light-on-surface-variant focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none"
+              />
+            </div>
+
+            <span class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-secondary-container text-light-on-secondary-container shrink-0">
+              <Store class="w-4 h-4 text-light-primary" />
+              <span class="font-label text-label-md font-bold font-mono tabular-nums">{{ masterTenants.length }} Brand Tersimpan</span>
+            </span>
+          </div>
+
+          <!-- Category Pills -->
+          <div class="flex items-center gap-gutter-xs overflow-x-auto pb-gutter-xs no-scrollbar" role="group" aria-label="Filter kategori brand">
             <button
               v-for="pill in masterCategoriesWithCounts"
               :key="pill.key"
               type="button"
               @click="masterCategoryFilter = pill.key"
               :class="[
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer',
+                'px-gutter-md py-gutter-xs rounded-full font-label text-label-md transition-colors cursor-pointer flex items-center gap-1.5 shrink-0',
                 masterCategoryFilter === pill.key
-                  ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 hover:bg-slate-700/70'
+                  ? 'bg-light-primary text-light-on-primary font-bold shadow-xs'
+                  : 'bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface-variant hover:bg-light-surface-container-low'
               ]"
             >
               <span>{{ pill.label }}</span>
               <span
                 :class="[
-                  'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
+                  'px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono tabular-nums',
                   masterCategoryFilter === pill.key
-                    ? 'bg-slate-950/20 text-slate-950'
-                    : 'bg-slate-900 text-slate-400 border border-slate-700'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-light-surface-container text-light-on-surface-variant'
                 ]"
               >
                 {{ pill.count }}
               </span>
             </button>
           </div>
-
-          <div class="flex flex-wrap items-center justify-between gap-4 pt-1 border-t border-slate-800/80">
-            <div class="flex items-center gap-3 flex-1 min-w-[280px]">
-              <div class="relative flex-1">
-                <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input
-                  v-model="masterSearchQuery"
-                  type="text"
-                  placeholder="Cari nama brand, instagram, PIC, WhatsApp, bank, atau rekening…"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder-slate-500"
-                />
-              </div>
-            </div>
-            <div class="text-xs font-medium text-slate-400">
-              Menampilkan <strong class="text-sky-400">{{ filteredMasterTenants.length }}</strong> dari <strong class="text-slate-300">{{ masterTenants.length }}</strong> brand
-            </div>
-          </div>
         </section>
 
-        <!-- Master Tenants Table -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <div v-if="loadingMasterTenants" class="flex justify-center py-12">
-            <Loader2 class="w-8 h-8 text-sky-400 animate-spin" />
-          </div>
+        <!-- Main Content: Loading, Empty, or Master Brand Directory Table/Cards -->
+        <div v-if="loadingMasterTenants" class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant p-12 flex justify-center items-center">
+          <Loader2 class="w-8 h-8 text-light-primary animate-spin" />
+        </div>
 
-          <div v-else-if="filteredMasterTenants.length === 0" class="text-center py-12 space-y-3">
-            <Store class="w-10 h-10 text-slate-700 mx-auto" />
-            <p class="text-slate-400 text-sm">Tidak ada brand master ditemukan.</p>
-            <button
-              v-if="masterSearchQuery || masterCategoryFilter !== 'ALL'"
-              @click="masterSearchQuery = ''; masterCategoryFilter = 'ALL'"
-              class="text-xs text-sky-400 hover:underline cursor-pointer"
-            >
-              Reset filter & pencarian
-            </button>
-          </div>
+        <div v-else-if="filteredMasterTenants.length === 0" class="rounded-lg bg-light-surface-container-lowest border border-light-outline-variant p-12 text-center space-y-3">
+          <Store class="w-10 h-10 text-light-on-surface-variant mx-auto opacity-40" />
+          <p class="font-headline text-headline-sm font-bold text-light-on-surface">Tidak ada brand master ditemukan</p>
+          <p class="font-body text-body-sm text-light-on-surface-variant">Coba ubah kata kunci pencarian atau reset filter kategori.</p>
+          <button
+            v-if="masterSearchQuery || masterCategoryFilter !== 'ALL'"
+            @click="masterSearchQuery = ''; masterCategoryFilter = 'ALL'"
+            class="font-label text-label-sm text-light-primary font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
+          >
+            Reset filter &amp; pencarian
+          </button>
+        </div>
 
-          <div v-else class="space-y-4">
-            <!-- Desktop / Tablet Table View (>= 768px) -->
-            <div class="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
-              <table class="w-full text-sm">
+        <div v-else class="space-y-4">
+          <!-- Desktop Table View (>= 768px) -->
+          <section aria-label="Direktori Induk Brand Tenant" class="hidden md:block rounded-lg bg-light-surface-container-lowest border border-light-outline-variant overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
                 <thead>
-                  <tr class="bg-slate-800/80 text-slate-400 text-xs uppercase tracking-wider">
-                    <th class="px-4 py-3 text-left">Brand Name</th>
-                    <th class="px-4 py-3 text-left">Kategori</th>
-                    <th class="px-4 py-3 text-left">PIC & Kontak</th>
-                    <th class="px-4 py-3 text-left">Bank / Rekening</th>
-                    <th class="px-4 py-3 text-center">Status di Event Aktif</th>
-                    <th class="px-4 py-3 text-center">Actions</th>
+                  <tr class="bg-light-surface-container-low border-b border-light-outline-variant">
+                    <th scope="col" class="px-gutter-md py-gutter-md">
+                      <span class="font-label text-label-sm text-light-on-surface-variant uppercase tracking-wide">Brand &amp; IG</span>
+                    </th>
+                    <th scope="col" class="px-gutter-sm py-gutter-md">
+                      <span class="font-label text-label-sm text-light-on-surface-variant uppercase tracking-wide">Kategori</span>
+                    </th>
+                    <th scope="col" class="px-gutter-sm py-gutter-md">
+                      <span class="font-label text-label-sm text-light-on-surface-variant uppercase tracking-wide">Kontak PIC &amp; WA</span>
+                    </th>
+                    <th scope="col" class="px-gutter-sm py-gutter-md">
+                      <span class="font-label text-label-sm text-light-on-surface-variant uppercase tracking-wide">Rekening Pencairan</span>
+                    </th>
+                    <th scope="col" class="px-gutter-sm py-gutter-md">
+                      <span class="font-label text-label-sm text-light-on-surface-variant uppercase tracking-wide">Status Event</span>
+                    </th>
+                    <th scope="col" class="px-gutter-md py-gutter-md text-right">
+                      <span class="font-label text-label-sm text-light-on-surface-variant uppercase tracking-wide">Aksi</span>
+                    </th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
+                <tbody class="divide-y divide-light-outline-variant">
                   <tr
                     v-for="m in filteredMasterTenants"
                     :key="m.id"
-                    class="hover:bg-slate-800/50 transition-colors"
+                    class="hover:bg-light-surface-container-low transition-colors"
                   >
-                    <td class="px-4 py-3">
-                      <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-slate-100 block">{{ m.name }}</span>
-                        <a
-                          v-if="m.instagram"
-                          :href="'https://instagram.com/' + m.instagram.replace(/^@/, '')"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="inline-flex items-center gap-0.5 text-[11px] font-semibold text-pink-400 hover:text-pink-300 hover:underline bg-pink-500/10 border border-pink-500/20 rounded-md px-1.5 py-0.5"
-                        >
-                          @{{ m.instagram.replace(/^@/, '') }}
-                        </a>
+                    <!-- Brand & IG -->
+                    <td class="px-gutter-md py-gutter-md">
+                      <div class="flex items-center gap-gutter-sm">
+                        <div class="w-9 h-9 rounded-md bg-light-secondary-container text-light-primary font-headline font-bold text-label-md flex items-center justify-center shrink-0">
+                          {{ m.name ? m.name.charAt(0).toUpperCase() : 'B' }}
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                          <span class="font-title text-title-md text-light-on-surface truncate">{{ m.name }}</span>
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <a
+                              v-if="m.instagram"
+                              :href="'https://instagram.com/' + m.instagram.replace(/^@/, '')"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="inline-flex items-center gap-0.5 text-light-primary hover:underline font-body text-body-sm"
+                            >
+                              <span>@{{ m.instagram.replace(/^@/, '') }}</span>
+                            </a>
+                            <span v-if="m.lastEventName" class="font-body text-body-sm text-light-on-surface-variant">
+                              • {{ m.lastEventName }}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <span class="text-[11px] text-slate-400 block mt-0.5">
-                        {{ m.lastEventName ? `Event terakhir: ${m.lastEventName}` : 'Belum pernah ikut event' }}
-                      </span>
                     </td>
-                    <td class="px-4 py-3">
-                      <span class="inline-block px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+
+                    <!-- Kategori -->
+                    <td class="px-gutter-sm py-gutter-md">
+                      <span class="inline-flex items-center px-gutter-sm py-gutter-xs rounded-full bg-light-surface-container text-light-on-surface font-label text-label-sm">
                         {{ m.category || '—' }}
                       </span>
                     </td>
-                    <td class="px-4 py-3 text-xs">
-                      <div v-if="m.pic_name || m.whatsapp" class="space-y-0.5">
-                        <span v-if="m.pic_name" class="font-medium text-slate-200 block">{{ m.pic_name }}</span>
-                        <div v-if="m.whatsapp" class="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
-                          <span class="text-emerald-400 font-semibold">WA:</span>
-                          <a
-                            :href="'https://wa.me/' + m.whatsapp.replace(/\D/g, '')"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="hover:text-emerald-300 hover:underline"
-                          >
-                            {{ m.whatsapp }}
-                          </a>
+
+                    <!-- Kontak PIC & WA -->
+                    <td class="px-gutter-sm py-gutter-md">
+                      <div v-if="m.pic_name || m.whatsapp" class="flex items-center gap-gutter-xs">
+                        <div class="flex flex-col">
+                          <span v-if="m.pic_name" class="font-label text-label-md text-light-on-surface">{{ m.pic_name }}</span>
+                          <span v-if="m.whatsapp" class="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">{{ m.whatsapp }}</span>
                         </div>
+                        <a
+                          v-if="m.whatsapp"
+                          :href="'https://wa.me/' + m.whatsapp.replace(/\D/g, '')"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          :aria-label="'Chat WhatsApp ' + (m.pic_name || m.name)"
+                          class="w-7 h-7 rounded-sm bg-light-secondary-container text-light-primary inline-flex items-center justify-center hover:bg-light-primary hover:text-light-on-primary transition-colors shrink-0 cursor-pointer"
+                        >
+                          <MessageSquare class="w-4 h-4" />
+                        </a>
                       </div>
-                      <span v-else class="text-slate-400">{{ m.contact_info || '—' }}</span>
+                      <span v-else class="font-body text-body-sm text-light-on-surface-variant">{{ m.contact_info || '—' }}</span>
                     </td>
-                    <td class="px-4 py-3 text-xs">
-                      <div v-if="m.bank_name || m.bank_account" class="space-y-0.5">
-                        <div class="flex items-center gap-1.5">
-                          <span v-if="m.bank_name" class="font-bold text-slate-200 uppercase tracking-wide">{{ m.bank_name }}</span>
-                          <span v-if="m.bank_account" class="font-mono text-slate-300">{{ m.bank_account }}</span>
-                        </div>
-                        <span v-if="m.bank_holder" class="text-[11px] text-slate-400 block">
+
+                    <!-- Rekening Pencairan -->
+                    <td class="px-gutter-sm py-gutter-md">
+                      <div v-if="m.bank_name || m.bank_account || m.bank_info">
+                        <span class="font-mono text-mono-sm text-light-on-surface tabular-nums block font-bold">
+                          {{ m.bank_name ? m.bank_name.toUpperCase() : '' }} {{ m.bank_account ? '• ' + m.bank_account : '' }}
+                        </span>
+                        <span v-if="m.bank_holder" class="font-body text-body-sm text-light-on-surface-variant block">
                           a.n. {{ m.bank_holder }}
                         </span>
+                        <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-mono-sm text-light-on-surface tabular-nums block">
+                          {{ m.bank_info }}
+                        </span>
                       </div>
-                      <span v-else class="font-mono text-slate-300">{{ m.bank_info || '—' }}</span>
+                      <span v-else class="font-body text-body-sm text-light-on-surface-variant">—</span>
                     </td>
-                    <td class="px-4 py-3 text-center">
+
+                    <!-- Status Event -->
+                    <td class="px-gutter-sm py-gutter-md">
                       <span
                         v-if="tenants.some((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        class="inline-flex items-center gap-1 px-gutter-sm py-gutter-xs rounded-full bg-light-secondary-container text-light-primary border border-light-primary font-label text-label-sm font-semibold"
                       >
-                        <Check class="w-3 h-3" />
-                        Terdaftar (Booth {{ tenants.find((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())?.booth_number || '—' }})
+                        <Check class="w-3.5 h-3.5" />
+                        <span>Terdaftar (Booth {{ tenants.find((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())?.booth_number || '—' }})</span>
                       </span>
                       <span
                         v-else-if="selectedEventId"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700"
+                        class="inline-flex items-center px-gutter-sm py-gutter-xs rounded-full bg-light-surface-container text-light-on-surface-variant font-label text-label-sm"
                       >
-                        Belum di event ini
+                        Belum di Lineup
                       </span>
                       <span
                         v-else
-                        class="text-xs text-slate-500 italic"
+                        class="font-body text-body-sm text-light-on-surface-variant italic"
                       >
                         Pilih event di Tab 1/2
                       </span>
                     </td>
-                    <td class="px-4 py-3 text-center">
-                      <div class="flex items-center justify-center gap-2 whitespace-nowrap">
+
+                    <!-- Aksi -->
+                    <td class="px-gutter-md py-gutter-md text-right">
+                      <div class="inline-flex flex-col items-end gap-gutter-xs">
                         <button
+                          type="button"
                           @click="openAssignSingleMasterModal(m)"
                           :disabled="events.length === 0"
-                          class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                          class="px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container-low border border-light-outline-variant text-light-primary hover:bg-light-secondary-container transition-colors disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                           :title="events.length === 0 ? 'Belum ada event' : 'Tugaskan brand ke event'"
                         >
-                          <Plus class="w-3.5 h-3.5" />
-                          <span>Assign</span>
+                          <span class="font-label text-label-sm font-semibold">+ Tugaskan ke Event</span>
                         </button>
-                        <button
-                          @click="openEditMasterModal(m)"
-                          class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
-                          title="Edit profil brand"
-                        >
-                          <Pencil class="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          @click="deleteMasterTenant(m)"
-                          class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
-                          title="Hapus dari master directory"
-                        >
-                          <Trash2 class="w-3.5 h-3.5" />
-                        </button>
+                        <div class="inline-flex items-center gap-gutter-xs">
+                          <button
+                            type="button"
+                            @click="openEditMasterModal(m)"
+                            class="px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container-lowest border border-light-outline-variant text-light-on-surface hover:bg-light-surface-container-low transition-colors cursor-pointer"
+                            title="Edit profil brand"
+                          >
+                            <span class="font-label text-label-sm">Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            @click="deleteMasterTenant(m)"
+                            class="px-gutter-sm py-gutter-xs rounded-sm bg-light-surface-container-lowest border border-light-outline-variant text-light-tertiary hover:bg-light-tertiary-container hover:text-light-on-tertiary-container transition-colors cursor-pointer"
+                            title="Hapus brand"
+                          >
+                            <span class="font-label text-label-sm">Hapus</span>
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+          </section>
 
-            <!-- Mobile Stacked Card View (< 768px) -->
-            <div class="md:hidden space-y-3">
+          <!-- Mobile Stacked Card View (< 768px) -->
+          <section aria-label="Daftar Brand Tenant Mobile" class="md:hidden flex flex-col gap-gutter-md">
+            <article
+              v-for="m in filteredMasterTenants"
+              :key="m.id"
+              class="p-gutter-lg rounded-lg bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-md"
+            >
+              <!-- Brand Header & Category -->
+              <div class="flex items-start justify-between gap-gutter-sm">
+                <div class="min-w-0">
+                  <h2 class="font-title text-title-md text-light-on-surface truncate">{{ m.name }}</h2>
+                  <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <a
+                      v-if="m.instagram"
+                      :href="'https://instagram.com/' + m.instagram.replace(/^@/, '')"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-block text-light-primary hover:underline font-body text-body-sm"
+                    >
+                      @{{ m.instagram.replace(/^@/, '') }}
+                    </a>
+                    <span v-if="m.lastEventName" class="font-body text-body-sm text-light-on-surface-variant">
+                      • {{ m.lastEventName }}
+                    </span>
+                  </div>
+                </div>
+                <span
+                  v-if="m.category"
+                  class="shrink-0 px-gutter-sm py-gutter-xs rounded-full bg-light-surface-container text-light-on-surface font-label text-label-sm"
+                >
+                  {{ m.category }}
+                </span>
+              </div>
+
+              <!-- PIC & WA Link -->
               <div
-                v-for="m in filteredMasterTenants"
-                :key="m.id"
-                class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-3"
+                v-if="m.pic_name || m.whatsapp"
+                class="flex items-center justify-between gap-gutter-sm p-gutter-sm rounded-sm bg-light-surface-container-low"
               >
-                <!-- Card Header: Brand Name + Category + Instagram -->
-                <div class="flex items-start justify-between gap-2">
-                  <div class="space-y-1 min-w-0 flex-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <h4 class="font-bold text-slate-100 text-sm truncate">{{ m.name }}</h4>
-                      <span
-                        v-if="m.category"
-                        class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                      >
-                        {{ m.category }}
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <a
-                        v-if="m.instagram"
-                        :href="'https://instagram.com/' + m.instagram.replace(/^@/, '')"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="inline-flex items-center gap-0.5 text-[11px] font-semibold text-pink-400 hover:text-pink-300 hover:underline bg-pink-500/10 border border-pink-500/20 rounded-md px-1.5 py-0.5"
-                      >
-                        @{{ m.instagram.replace(/^@/, '') }}
-                      </a>
-                      <span class="text-[11px] text-slate-400">
-                        {{ m.lastEventName ? `Terakhir: ${m.lastEventName}` : 'Belum pernah ikut event' }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Registration status badge -->
-                  <span
-                    v-if="tenants.some((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())"
-                    class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                  >
-                    <Check class="w-3 h-3" />
-                    Booth {{ tenants.find((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())?.booth_number || '—' }}
-                  </span>
-                  <span
-                    v-else-if="selectedEventId"
-                    class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 text-slate-400 border border-slate-700"
-                  >
-                    Belum di Lineup
+                <div class="flex items-center gap-gutter-xs min-w-0">
+                  <Users class="w-4 h-4 text-light-primary shrink-0" />
+                  <span class="font-body text-body-sm text-light-on-surface truncate">
+                    {{ m.pic_name || 'PIC' }}
+                    <span v-if="m.whatsapp" class="font-mono text-mono-sm tabular-nums text-light-on-surface-variant"> • {{ m.whatsapp }}</span>
                   </span>
                 </div>
+                <a
+                  v-if="m.whatsapp"
+                  :href="'https://wa.me/' + m.whatsapp.replace(/\D/g, '')"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  :aria-label="'Chat WhatsApp ' + (m.pic_name || m.name)"
+                  class="w-7 h-7 rounded-sm bg-light-secondary-container text-light-primary inline-flex items-center justify-center hover:bg-light-primary hover:text-light-on-primary transition-colors shrink-0 cursor-pointer"
+                >
+                  <MessageSquare class="w-4 h-4" />
+                </a>
+              </div>
 
-                <!-- Contact & Bank Info Box -->
-                <div class="bg-slate-900/80 border border-slate-800/80 rounded-lg p-2.5 text-xs space-y-1.5">
-                  <!-- PIC & WhatsApp -->
-                  <div v-if="m.pic_name || m.whatsapp" class="flex items-center justify-between text-slate-300">
-                    <span class="text-slate-400">Kontak:</span>
-                    <div class="flex items-center gap-2">
-                      <span v-if="m.pic_name" class="font-medium text-slate-200">{{ m.pic_name }}</span>
-                      <div v-if="m.whatsapp" class="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
-                        <span class="text-emerald-400 font-semibold">WA:</span>
-                        <a
-                          :href="'https://wa.me/' + m.whatsapp.replace(/\D/g, '')"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="hover:text-emerald-300 hover:underline"
-                        >
-                          {{ m.whatsapp }}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
+              <!-- Bank Info -->
+              <div
+                v-if="m.bank_name || m.bank_account || m.bank_info"
+                class="p-gutter-sm rounded-sm bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-0.5"
+              >
+                <span class="font-label text-label-sm text-light-on-surface-variant font-semibold">Rekening Pencairan</span>
+                <span class="font-mono text-mono-sm text-light-on-surface tabular-nums font-bold">
+                  {{ m.bank_name ? m.bank_name.toUpperCase() : '' }} {{ m.bank_account ? '• ' + m.bank_account : '' }}
+                </span>
+                <span v-if="m.bank_holder" class="font-body text-body-sm text-light-on-surface-variant">
+                  a.n. {{ m.bank_holder }}
+                </span>
+                <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-mono-sm text-light-on-surface tabular-nums">
+                  {{ m.bank_info }}
+                </span>
+              </div>
 
-                  <!-- Bank Info -->
-                  <div v-if="m.bank_name || m.bank_account || m.bank_info" class="flex items-center justify-between text-slate-300 border-t border-slate-800/80 pt-1.5">
-                    <span class="text-slate-400">Rekening:</span>
-                    <div class="text-right">
-                      <span v-if="m.bank_name" class="font-bold uppercase text-slate-200">{{ m.bank_name }} </span>
-                      <span v-if="m.bank_account" class="font-mono text-slate-300">{{ m.bank_account }}</span>
-                      <span v-if="m.bank_holder" class="text-[11px] text-slate-400 block">a.n. {{ m.bank_holder }}</span>
-                      <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-slate-300">{{ m.bank_info }}</span>
-                    </div>
-                  </div>
-                </div>
+              <!-- Status Event -->
+              <div class="flex items-center justify-between gap-gutter-sm">
+                <span
+                  v-if="tenants.some((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())"
+                  class="inline-flex items-center gap-1 px-gutter-sm py-gutter-xs rounded-full bg-light-secondary-container text-light-primary border border-light-primary font-label text-label-sm font-semibold"
+                >
+                  <Check class="w-3.5 h-3.5" />
+                  Booth {{ tenants.find((t) => t.master_tenant_id === m.id || t.name.toLowerCase().trim() === m.name.toLowerCase().trim())?.booth_number || '—' }}
+                </span>
+                <span
+                  v-else-if="selectedEventId"
+                  class="inline-flex items-center px-gutter-sm py-gutter-xs rounded-full bg-light-surface-container text-light-on-surface-variant font-label text-label-sm"
+                >
+                  Belum di Lineup
+                </span>
+                <span v-else class="font-body text-body-sm text-light-on-surface-variant italic">
+                  Pilih event di Tab 1/2
+                </span>
+              </div>
 
-                <!-- Action Row: Assign, Edit, Delete -->
-                <div class="flex items-center gap-2 pt-1">
+              <!-- Action Buttons -->
+              <div class="flex flex-col gap-gutter-xs">
+                <button
+                  type="button"
+                  @click="openAssignSingleMasterModal(m)"
+                  :disabled="events.length === 0"
+                  class="w-full py-gutter-sm px-gutter-md rounded-sm bg-light-surface-container-low border border-light-outline-variant text-light-primary font-label text-label-sm font-semibold hover:bg-light-secondary-container transition-colors disabled:opacity-40 disabled:pointer-events-none cursor-pointer touch-manipulation select-none"
+                >
+                  + Tugaskan ke Event
+                </button>
+                <div class="grid grid-cols-2 gap-gutter-xs">
                   <button
-                    @click="openAssignSingleMasterModal(m)"
-                    :disabled="events.length === 0"
-                    class="flex-1 flex items-center justify-center gap-1 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-700 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer touch-manipulation select-none"
-                    :title="events.length === 0 ? 'Belum ada event' : 'Tugaskan brand ke event'"
-                  >
-                    <Plus class="w-3.5 h-3.5" />
-                    <span>Tugaskan ke Event</span>
-                  </button>
-                  <button
+                    type="button"
                     @click="openEditMasterModal(m)"
-                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer touch-manipulation select-none"
-                    title="Edit profil brand"
+                    class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-on-surface hover:bg-light-surface-container-low transition-colors cursor-pointer text-center touch-manipulation select-none"
                   >
-                    <Pencil class="w-3.5 h-3.5" />
+                    Edit
                   </button>
                   <button
+                    type="button"
                     @click="deleteMasterTenant(m)"
-                    class="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer touch-manipulation select-none"
-                    title="Hapus dari master directory"
+                    class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-tertiary hover:bg-light-tertiary-container hover:text-light-on-tertiary-container transition-colors cursor-pointer text-center touch-manipulation select-none"
                   >
-                    <Trash2 class="w-3.5 h-3.5" />
+                    Hapus
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </article>
+          </section>
+        </div>
       </div>
-
     </main>
-
-    <!-- ── Edit Tenant Modal ─────────────────────────────────────────── -->
+<!-- ── Edit Tenant Modal ─────────────────────────────────────────── -->
     <Transition name="modal">
       <div v-if="editingTenantModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeEditTenantModal" />
@@ -3758,17 +3806,17 @@ async function copyTenantWaSummary(row) {
         </div>
       </div>
     </Transition>
-    <!-- ── Add Master Tenant Modal ────────────────────────────────────── -->
+        <!-- ── Add Master Tenant Modal ────────────────────────────────────── -->
     <Transition name="modal">
       <div v-if="showAddMasterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showAddMasterModal = false" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl z-10 overflow-hidden">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-800/40">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-lg w-full max-w-lg shadow-2xl z-10 overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-light-outline-variant bg-light-surface-container-low">
             <div>
-              <p class="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Master Directory</p>
-              <h3 class="font-bold text-slate-100 text-base mt-0.5">Tambah Brand Master Baru</h3>
+              <p class="font-label text-label-sm text-light-primary font-bold uppercase tracking-wider">Master Directory</p>
+              <h3 class="font-headline text-headline-md text-light-on-surface font-bold mt-0.5">Tambah Brand Master Baru</h3>
             </div>
-            <button @click="showAddMasterModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <button @click="showAddMasterModal = false" class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-sm transition-colors cursor-pointer">
               <X class="w-5 h-5" />
             </button>
           </div>
@@ -3777,21 +3825,21 @@ async function copyTenantWaSummary(row) {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Brand Name -->
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Nama Brand <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama Brand <span class="text-light-error">*</span></label>
                 <input
                   v-model="newMasterTenant.name"
                   type="text"
                   placeholder="e.g. Kopi Tuku / SneakerLab"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <!-- Kategori -->
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Kategori <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Kategori <span class="text-light-error">*</span></label>
                 <select
                   v-model="newMasterTenant.category"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none"
                 >
                   <option v-for="cat in PRESET_CATEGORIES" :key="cat" :value="cat">
                     {{ cat }}
@@ -3800,101 +3848,103 @@ async function copyTenantWaSummary(row) {
               </div>
 
               <div v-if="newMasterTenant.category === 'Other (Custom)'" class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-amber-400">Custom Category <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-amber-600">Custom Category <span class="text-light-error">*</span></label>
                 <input
                   v-model="newMasterTenant.customCategory"
                   type="text"
                   placeholder="e.g. Leather Craft"
-                  class="w-full bg-slate-800 border border-amber-500/50 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  class="w-full bg-light-surface-container-low border border-amber-500/50 text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none"
                 />
               </div>
 
               <!-- Kontak Brand & PIC -->
-              <div class="sm:col-span-2 pt-2 border-t border-slate-800">
-                <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Kontak Brand & PIC (Opsional)</span>
+              <div class="sm:col-span-2 pt-2 border-t border-light-outline-variant">
+                <span class="font-label text-label-sm font-bold text-light-on-surface uppercase tracking-wider block">Kontak Brand &amp; PIC (Opsional)</span>
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Instagram (@handle)</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Instagram (@handle)</label>
                 <input
                   v-model="newMasterTenant.instagram"
                   type="text"
                   placeholder="e.g. @kopituku"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Nama PIC</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama PIC</label>
                 <input
                   v-model="newMasterTenant.pic_name"
                   type="text"
                   placeholder="e.g. Nadia Kusuma"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Nomor WhatsApp PIC</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nomor WhatsApp PIC</label>
                 <input
                   v-model="newMasterTenant.whatsapp"
                   type="text"
                   placeholder="e.g. 081234567890"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none font-mono tabular-nums placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <!-- Informasi Rekening Bank -->
-              <div class="sm:col-span-2 pt-2 border-t border-slate-800">
-                <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Informasi Rekening Bank (Opsional)</span>
+              <div class="sm:col-span-2 pt-2 border-t border-light-outline-variant">
+                <span class="font-label text-label-sm font-bold text-light-on-surface uppercase tracking-wider block">Informasi Rekening Bank (Opsional)</span>
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Nama Bank</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama Bank</label>
                 <input
                   v-model="newMasterTenant.bank_name"
                   type="text"
                   placeholder="e.g. BCA / Mandiri"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Nomor Rekening</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nomor Rekening</label>
                 <input
                   v-model="newMasterTenant.bank_account"
                   type="text"
                   placeholder="e.g. 0118492031"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-mono text-mono-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none tabular-nums placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Atas Nama Rekening</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Atas Nama Rekening</label>
                 <input
                   v-model="newMasterTenant.bank_holder"
                   type="text"
                   placeholder="e.g. Nadia Kusuma Putri"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
             </div>
 
-            <div v-if="createMasterError" class="text-sm text-rose-400 bg-rose-400/10 border border-rose-400/30 rounded-lg px-3 py-2">
+            <div v-if="createMasterError" class="text-body-sm font-body text-light-error bg-light-error-container/20 border border-light-error/30 rounded-md px-3 py-2">
               {{ createMasterError }}
             </div>
 
             <div class="flex justify-end gap-3 pt-2">
               <button
                 @click="showAddMasterModal = false"
-                class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                type="button"
+                class="px-4 py-2 rounded-md font-label text-label-md font-semibold text-light-on-surface-variant hover:bg-light-surface-container transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 @click="createMasterTenant"
                 :disabled="creatingMaster"
-                class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+                type="button"
+                class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-50 text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
               >
                 <Loader2 v-if="creatingMaster" class="w-4 h-4 animate-spin" />
                 <Plus v-else class="w-4 h-4" />
@@ -3910,13 +3960,13 @@ async function copyTenantWaSummary(row) {
     <Transition name="modal">
       <div v-if="editingMasterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="editingMasterModal = false" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl z-10 overflow-hidden">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-800/40">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-lg w-full max-w-lg shadow-2xl z-10 overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-light-outline-variant bg-light-surface-container-low">
             <div>
-              <p class="text-xs text-sky-400 font-semibold uppercase tracking-wider">Master Directory</p>
-              <h3 class="font-bold text-slate-100 text-base mt-0.5">Edit Profil Brand Master</h3>
+              <p class="font-label text-label-sm text-light-primary font-bold uppercase tracking-wider">Master Directory</p>
+              <h3 class="font-headline text-headline-md text-light-on-surface font-bold mt-0.5">Edit Profil Brand Master</h3>
             </div>
-            <button @click="editingMasterModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <button @click="editingMasterModal = false" class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-sm transition-colors cursor-pointer">
               <X class="w-5 h-5" />
             </button>
           </div>
@@ -3925,20 +3975,20 @@ async function copyTenantWaSummary(row) {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Brand Name -->
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Nama Brand <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama Brand <span class="text-light-error">*</span></label>
                 <input
                   v-model="editingMasterTenant.name"
                   type="text"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none"
                 />
               </div>
 
               <!-- Kategori -->
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Kategori <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Kategori <span class="text-light-error">*</span></label>
                 <select
                   v-model="editMasterCategory"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none"
                 >
                   <option v-for="cat in PRESET_CATEGORIES" :key="cat" :value="cat">
                     {{ cat }}
@@ -3947,101 +3997,103 @@ async function copyTenantWaSummary(row) {
               </div>
 
               <div v-if="editMasterCategory === 'Other (Custom)'" class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-amber-400">Custom Category <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-amber-600">Custom Category <span class="text-light-error">*</span></label>
                 <input
                   v-model="editMasterCustomCategory"
                   type="text"
                   placeholder="e.g. Leather Craft"
-                  class="w-full bg-slate-800 border border-amber-500/50 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  class="w-full bg-light-surface-container-low border border-amber-500/50 text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none"
                 />
               </div>
 
               <!-- Kontak Brand & PIC -->
-              <div class="sm:col-span-2 pt-2 border-t border-slate-800">
-                <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Kontak Brand & PIC (Opsional)</span>
+              <div class="sm:col-span-2 pt-2 border-t border-light-outline-variant">
+                <span class="font-label text-label-sm font-bold text-light-on-surface uppercase tracking-wider block">Kontak Brand &amp; PIC (Opsional)</span>
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Instagram (@handle)</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Instagram (@handle)</label>
                 <input
                   v-model="editingMasterTenant.instagram"
                   type="text"
                   placeholder="e.g. @kopituku"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Nama PIC</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama PIC</label>
                 <input
                   v-model="editingMasterTenant.pic_name"
                   type="text"
                   placeholder="e.g. Nadia Kusuma"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Nomor WhatsApp PIC</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nomor WhatsApp PIC</label>
                 <input
                   v-model="editingMasterTenant.whatsapp"
                   type="text"
                   placeholder="e.g. 081234567890"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none font-mono tabular-nums placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <!-- Informasi Rekening Bank -->
-              <div class="sm:col-span-2 pt-2 border-t border-slate-800">
-                <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Informasi Rekening Bank (Opsional)</span>
+              <div class="sm:col-span-2 pt-2 border-t border-light-outline-variant">
+                <span class="font-label text-label-sm font-bold text-light-on-surface uppercase tracking-wider block">Informasi Rekening Bank (Opsional)</span>
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Nama Bank</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nama Bank</label>
                 <input
                   v-model="editingMasterTenant.bank_name"
                   type="text"
                   placeholder="e.g. BCA / Mandiri"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Nomor Rekening</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nomor Rekening</label>
                 <input
                   v-model="editingMasterTenant.bank_account"
                   type="text"
                   placeholder="e.g. 0118492031"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-mono text-mono-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none tabular-nums placeholder:text-light-on-surface-variant"
                 />
               </div>
 
               <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs font-medium text-slate-400">Atas Nama Rekening</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Atas Nama Rekening</label>
                 <input
                   v-model="editingMasterTenant.bank_holder"
                   type="text"
                   placeholder="e.g. Nadia Kusuma Putri"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
             </div>
 
-            <div v-if="editMasterError" class="text-sm text-rose-400 bg-rose-400/10 border border-rose-400/30 rounded-lg px-3 py-2">
+            <div v-if="editMasterError" class="text-body-sm font-body text-light-error bg-light-error-container/20 border border-light-error/30 rounded-md px-3 py-2">
               {{ editMasterError }}
             </div>
 
             <div class="flex justify-end gap-3 pt-2">
               <button
                 @click="editingMasterModal = false"
-                class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                type="button"
+                class="px-4 py-2 rounded-md font-label text-label-md font-semibold text-light-on-surface-variant hover:bg-light-surface-container transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 @click="saveEditMasterTenant"
                 :disabled="savingMaster"
-                class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+                type="button"
+                class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-50 text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
               >
                 <Loader2 v-if="savingMaster" class="w-4 h-4 animate-spin" />
                 <Check v-else class="w-4 h-4" />
@@ -4057,13 +4109,13 @@ async function copyTenantWaSummary(row) {
     <Transition name="modal">
       <div v-if="assigningMasterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="assigningMasterModal = false" />
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl z-10 overflow-hidden">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-800/40">
+        <div class="relative bg-light-surface-container-lowest border border-light-outline-variant rounded-lg w-full max-w-md shadow-2xl z-10 overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-light-outline-variant bg-light-surface-container-low">
             <div>
-              <p class="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Tugaskan Brand ke Event</p>
-              <h3 class="font-bold text-slate-100 text-base mt-0.5">{{ targetMasterTenant?.name }}</h3>
+              <p class="font-label text-label-sm text-light-primary font-bold uppercase tracking-wider">Tugaskan Brand ke Event</p>
+              <h3 class="font-headline text-headline-md text-light-on-surface font-bold mt-0.5">{{ targetMasterTenant?.name }}</h3>
             </div>
-            <button @click="assigningMasterModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <button @click="assigningMasterModal = false" class="text-light-on-surface-variant hover:text-light-on-surface p-1 rounded-sm transition-colors cursor-pointer">
               <X class="w-5 h-5" />
             </button>
           </div>
@@ -4071,67 +4123,69 @@ async function copyTenantWaSummary(row) {
           <div class="p-6 pb-24 sm:pb-6 space-y-4 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
             <div class="space-y-3">
               <div class="space-y-1.5">
-                <label class="text-xs font-medium text-slate-400">Target Event <span class="text-rose-400">*</span></label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Target Event <span class="text-light-error">*</span></label>
                 <div class="relative">
                   <select
                     v-model="assignTargetEventId"
-                    class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3 py-2.5 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-8 cursor-pointer"
+                    class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2.5 font-body text-body-md appearance-none focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none pr-8 cursor-pointer"
                   >
                     <option v-for="ev in events" :key="ev.id" :value="ev.id">
                       {{ ev.name }} ({{ ev.venue || 'No Venue' }})
                     </option>
                   </select>
-                  <ChevronDown class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <ChevronDown class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-light-on-surface-variant pointer-events-none" />
                 </div>
               </div>
 
               <!-- Target Event Revenue Split & Details -->
-              <div v-if="assignTargetEvent" class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 text-xs space-y-1.5">
-                <div class="flex items-center justify-between text-slate-300">
-                  <span class="text-slate-400">Default Split:</span>
-                  <span class="font-medium">
-                    Venue <strong class="text-violet-400">{{ assignTargetEvent.venue_share_percent ?? 10 }}%</strong>
-                    • EO <strong class="text-amber-400">{{ assignTargetEvent.organizer_share_percent ?? 0 }}%</strong>
-                    • Tenant <strong class="text-emerald-400">{{ Math.max(0, 100 - (Number(assignTargetEvent.venue_share_percent ?? 10) + Number(assignTargetEvent.organizer_share_percent ?? 0))) }}%</strong>
+              <div v-if="assignTargetEvent" class="bg-light-surface-container-low border border-light-outline-variant rounded-md p-3 text-xs space-y-1.5">
+                <div class="flex items-center justify-between text-light-on-surface flex-wrap gap-1">
+                  <span class="text-light-on-surface-variant font-label">Default Split:</span>
+                  <span class="font-mono tabular-nums text-mono-sm">
+                    Venue <strong class="text-light-primary">{{ assignTargetEvent.venue_share_percent ?? 10 }}%</strong>
+                    • EO <strong class="text-amber-600">{{ assignTargetEvent.organizer_share_percent ?? 0 }}%</strong>
+                    • Tenant <strong class="text-light-primary">{{ Math.max(0, 100 - (Number(assignTargetEvent.venue_share_percent ?? 10) + Number(assignTargetEvent.organizer_share_percent ?? 0))) }}%</strong>
                   </span>
                 </div>
-                <div v-if="assignTargetEvent.event_dates" class="text-[11px] text-slate-500">
+                <div v-if="assignTargetEvent.event_dates" class="text-[11px] font-body text-light-on-surface-variant">
                   Tanggal: {{ assignTargetEvent.event_dates }}
                 </div>
               </div>
 
               <!-- Warning if brand is already registered in this target event -->
-              <div v-if="isBrandAlreadyInTargetEvent" class="flex items-center gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                <AlertCircle class="w-4 h-4 shrink-0 text-amber-400" />
+              <div v-if="isBrandAlreadyInTargetEvent" class="flex items-center gap-2.5 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-body">
+                <AlertCircle class="w-4 h-4 shrink-0 text-amber-600" />
                 <span>Brand ini sudah terdaftar di lineup event terpilih.</span>
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-400">Nomor Booth di Event Ini</label>
+                <label class="text-xs font-label font-semibold text-light-on-surface-variant">Nomor Booth di Event Ini</label>
                 <input
                   v-model="assignBoothNumber"
                   type="text"
                   placeholder="e.g. A-08"
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface rounded-md px-3 py-2 font-body text-body-md focus:border-light-primary focus:ring-2 focus:ring-light-primary focus:outline-none placeholder:text-light-on-surface-variant"
                 />
               </div>
             </div>
 
-            <div v-if="assignMasterError" class="text-sm text-rose-400 bg-rose-400/10 border border-rose-400/30 rounded-lg px-3 py-2">
+            <div v-if="assignMasterError" class="text-body-sm font-body text-light-error bg-light-error-container/20 border border-light-error/30 rounded-md px-3 py-2">
               {{ assignMasterError }}
             </div>
 
             <div class="flex justify-end gap-3 pt-2">
               <button
                 @click="assigningMasterModal = false"
-                class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                type="button"
+                class="px-4 py-2 rounded-md font-label text-label-md font-semibold text-light-on-surface-variant hover:bg-light-surface-container transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 @click="confirmAssignMasterToActiveEvent"
                 :disabled="assigningToActiveEvent || isBrandAlreadyInTargetEvent || !assignTargetEventId"
-                class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 px-5 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+                type="button"
+                class="inline-flex items-center gap-2 bg-light-primary hover:bg-light-primary-container disabled:opacity-50 disabled:cursor-not-allowed text-light-on-primary px-5 py-2 rounded-md font-label text-label-md font-bold transition-colors cursor-pointer"
               >
                 <Loader2 v-if="assigningToActiveEvent" class="w-4 h-4 animate-spin" />
                 <Check v-else class="w-4 h-4" />
@@ -4142,7 +4196,6 @@ async function copyTenantWaSummary(row) {
         </div>
       </div>
     </Transition>
-
     <!-- ── Floating Global Toast Notification ────────────────────────────── -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
@@ -4154,24 +4207,24 @@ async function copyTenantWaSummary(row) {
     >
       <div
         v-if="toast.show"
-        class="fixed bottom-6 right-6 z-50 max-w-md shadow-2xl rounded-2xl border p-4 flex items-start gap-3 backdrop-blur-md"
+        class="fixed bottom-6 right-6 z-50 max-w-md shadow-2xl rounded-lg border p-4 flex items-start gap-3 backdrop-blur-md bg-light-surface-container-lowest text-light-on-surface"
         :class="{
-          'bg-slate-900/95 border-emerald-500/40 text-emerald-300': toast.type === 'success',
-          'bg-slate-900/95 border-rose-500/40 text-rose-300': toast.type === 'error',
-          'bg-slate-900/95 border-sky-500/40 text-sky-300': toast.type === 'info',
+          'border-light-primary/40': toast.type === 'success',
+          'border-light-error/40': toast.type === 'error',
+          'border-sky-500/40': toast.type === 'info',
         }"
       >
-        <CheckCircle2 v-if="toast.type === 'success'" class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-        <AlertCircle v-else-if="toast.type === 'error'" class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-        <AlertCircle v-else class="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
+        <CheckCircle2 v-if="toast.type === 'success'" class="w-5 h-5 text-light-primary shrink-0 mt-0.5" />
+        <AlertCircle v-else-if="toast.type === 'error'" class="w-5 h-5 text-light-error shrink-0 mt-0.5" />
+        <AlertCircle v-else class="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
 
-        <div class="flex-1 text-xs sm:text-sm font-medium leading-relaxed">
+        <div class="flex-1 font-body text-body-sm leading-relaxed">
           {{ toast.message }}
         </div>
 
         <button
           @click="toast.show = false"
-          class="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer shrink-0"
+          class="p-1 rounded-sm hover:bg-light-surface-container text-light-on-surface-variant hover:text-light-on-surface transition-colors cursor-pointer shrink-0"
           title="Tutup"
         >
           <X class="w-4 h-4" />
