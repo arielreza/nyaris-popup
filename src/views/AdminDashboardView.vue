@@ -386,7 +386,10 @@ const settlementRows = computed(() => {
     const venueCut = items.reduce((s, i) => s + Number(i.venue_cut || 0), 0)
     const orgCut = items.reduce((s, i) => s + Number(i.organizer_cut || 0), 0)
     const net = items.reduce((s, i) => s + Number(i.tenant_net || 0), 0)
-    return { ...tenant, gross, venueCut, orgCut, net, items }
+    const linkedMaster = getLinkedMasterTenant(tenant)
+    const bankDisplay = tenant.bank_info?.trim() || (linkedMaster ? [linkedMaster.bank_name, linkedMaster.bank_account].filter(Boolean).join(' • ') : '') || linkedMaster?.bank_info || ''
+    const bankHolder = linkedMaster?.bank_holder || ''
+    return { ...tenant, gross, venueCut, orgCut, net, items, bankDisplay, bankHolder }
   })
 })
 
@@ -694,7 +697,20 @@ async function copyPortalLink(tenant) {
   const url = `${window.location.origin}/tenant/${tenant.access_token}`
   await navigator.clipboard.writeText(url)
   copiedId.value = tenant.id
+  showToast('success', `Link portal untuk ${tenant.name} berhasil disalin!`)
   setTimeout(() => { copiedId.value = null }, 2000)
+}
+
+async function copyBankAccount(bankStr) {
+  if (!bankStr) return
+  const matchDigits = String(bankStr).match(/\d[\d\s-]{4,}\d/)
+  const textToCopy = matchDigits ? matchDigits[0].replace(/\s+/g, '') : String(bankStr).trim()
+  try {
+    await navigator.clipboard.writeText(textToCopy)
+    showToast('success', 'Nomor rekening berhasil disalin')
+  } catch (err) {
+    showToast('error', 'Gagal menyalin nomor rekening')
+  }
 }
 
 function getLinkedMasterTenant(tenant) {
@@ -2017,28 +2033,28 @@ async function copyTenantWaSummary(row) {
   </div>
 
   <!-- ── Unlocked Admin Dashboard ──────────────────────────────────────── -->
-  <div v-else class="min-h-screen bg-light-surface text-light-on-surface font-body">
+  <div v-else class="min-h-screen bg-light-surface text-light-on-surface font-body overflow-x-hidden w-full max-w-full">
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-24 sm:pb-12">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-24 sm:pb-12 overflow-x-hidden w-full max-w-full">
 <!-- ════════════════════════════════════════════════════════════════
            TAB 1: OVERVIEW & SETTLEMENT
       ═════════════════════════════════════════════════════════════════ -->
       <div v-if="activeTab === 'overview'" class="flex flex-col gap-gutter-xl">
         <!-- ── Page Header & Controls ─────────────────────────────────── -->
-        <header class="flex flex-wrap items-start justify-between gap-gutter-lg">
-          <div class="min-w-0">
+        <header class="flex flex-wrap items-start justify-between gap-gutter-lg max-w-full">
+          <div class="min-w-0 max-w-full">
             <h1 class="font-headline text-headline-lg text-light-on-surface">Ringkasan &amp; Tutup Buku</h1>
             <p class="font-body text-body-md text-light-on-surface-variant mt-gutter-xs">Pantau omzet real-time dan bagikan laporan hasil penjualan ke setiap booth.</p>
           </div>
 
           <!-- Right-Aligned Action Bar -->
-          <div class="flex flex-wrap items-center gap-gutter-sm shrink-0">
+          <div class="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
             <!-- Active Event Switcher Pill -->
-            <div class="relative inline-flex items-center">
+            <div class="relative inline-flex items-center max-w-full">
               <span class="material-symbols-outlined text-[18px] text-light-primary absolute left-3 pointer-events-none" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">festival</span>
               <select
                 v-model="selectedEventId"
-                class="appearance-none pl-9 pr-8 py-2 rounded-md bg-light-secondary-container text-light-on-secondary-container border border-light-primary font-label text-label-md hover:bg-light-surface-variant transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-light-primary"
+                class="appearance-none pl-9 pr-8 py-2 rounded-md bg-light-secondary-container text-light-on-secondary-container border border-light-primary font-label text-label-md hover:bg-light-surface-variant transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-light-primary max-w-[260px] sm:max-w-xs truncate"
               >
                 <option value="" disabled>-- Pilih Event --</option>
                 <option v-for="ev in events" :key="ev.id" :value="ev.id">
@@ -2344,6 +2360,19 @@ async function copyTenantWaSummary(row) {
                       <td class="py-gutter-md px-gutter-md">
                         <p class="font-label text-label-lg font-bold text-light-on-surface">{{ row.name }}</p>
                         <p class="font-body text-body-sm text-light-on-surface-variant">{{ row.category || 'Umum' }}</p>
+                        <div v-if="row.bankDisplay" class="flex items-center gap-1.5 mt-1">
+                          <span class="font-mono text-xs text-light-on-surface-variant tabular-nums truncate max-w-[180px]">
+                            {{ row.bankDisplay }}
+                          </span>
+                          <button
+                            type="button"
+                            @click="copyBankAccount(row.bankDisplay)"
+                            title="Salin nomor rekening"
+                            class="shrink-0 p-0.5 rounded hover:bg-light-surface-container-high text-light-on-surface-variant hover:text-light-primary transition-colors cursor-pointer"
+                          >
+                            <Copy class="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                       <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-on-surface tabular-nums font-semibold">{{ formatRupiah(row.gross) }}</td>
                       <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-qris tabular-nums font-semibold">{{ formatRupiah(row.venueCut) }}</td>
@@ -2453,6 +2482,28 @@ async function copyTenantWaSummary(row) {
                     </div>
                   </div>
 
+                  <!-- Bank Info Strip -->
+                  <div
+                    v-if="row.bankDisplay"
+                    class="flex items-center justify-between gap-2 p-gutter-sm rounded-sm bg-light-surface-container-low border border-light-outline-variant"
+                  >
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <CreditCard class="w-3.5 h-3.5 text-light-on-surface-variant shrink-0" />
+                      <span class="font-mono text-xs text-light-on-surface tabular-nums font-semibold truncate">
+                        {{ row.bankDisplay }}
+                        <span v-if="row.bankHolder" class="text-light-on-surface-variant font-normal font-body">({{ row.bankHolder }})</span>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      @click="copyBankAccount(row.bankDisplay)"
+                      class="shrink-0 px-2.5 py-1 rounded-sm bg-light-surface-container-lowest border border-light-outline-variant text-light-primary font-label text-xs font-semibold flex items-center gap-1 hover:bg-light-secondary-container transition-colors cursor-pointer select-none"
+                    >
+                      <Copy class="w-3 h-3" />
+                      <span>Salin</span>
+                    </button>
+                  </div>
+
                   <!-- Action Buttons: Unduh PDF & Salin Rekap WA -->
                   <div class="grid grid-cols-2 gap-gutter-sm">
                     <button
@@ -2531,11 +2582,11 @@ async function copyTenantWaSummary(row) {
           <div class="flex flex-wrap items-center justify-between gap-gutter-md">
             <div class="flex flex-wrap items-center gap-gutter-md min-w-0">
               <!-- Event Switcher Dropdown Pill -->
-              <div class="relative inline-flex items-center">
+              <div class="relative inline-flex items-center max-w-full">
                 <span class="material-symbols-outlined text-[18px] text-light-primary absolute left-3 pointer-events-none" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">festival</span>
                 <select
                   v-model="selectedEventId"
-                  class="appearance-none pl-9 pr-8 py-2 rounded-md bg-light-surface-container-low border border-light-outline-variant text-light-on-surface hover:border-light-primary transition-colors cursor-pointer font-title text-title-md focus:outline-none focus:ring-2 focus:ring-light-primary"
+                  class="appearance-none pl-9 pr-8 py-2 rounded-md bg-light-surface-container-low border border-light-outline-variant text-light-on-surface hover:border-light-primary transition-colors cursor-pointer font-title text-title-md focus:outline-none focus:ring-2 focus:ring-light-primary max-w-[260px] sm:max-w-xs truncate text-sm sm:text-base"
                 >
                   <option value="" disabled>-- Pilih Event --</option>
                   <option v-for="ev in events" :key="ev.id" :value="ev.id">
@@ -3055,14 +3106,15 @@ async function copyTenantWaSummary(row) {
                   </div>
 
                   <!-- Mobile Actions Grid -->
-                  <div class="grid grid-cols-2 gap-gutter-xs">
+                  <div class="grid grid-cols-3 gap-gutter-xs">
                     <button
                       type="button"
                       @click="copyTenantPortalInvite(tenant)"
                       :class="copiedInviteId === tenant.id
                         ? 'bg-light-secondary-container text-light-primary border border-light-primary'
                         : 'bg-light-secondary-container text-light-on-secondary-container'"
-                      class="py-gutter-sm px-gutter-sm rounded-sm font-label text-label-sm font-semibold text-center cursor-pointer"
+                      class="py-gutter-sm px-gutter-xs rounded-sm font-label text-label-sm font-semibold text-center cursor-pointer truncate"
+                      :title="`Salin undangan WhatsApp untuk ${tenant.name}`"
                     >
                       {{ copiedInviteId === tenant.id ? 'Tersalin!' : 'Undangan WA' }}
                     </button>
@@ -3071,19 +3123,28 @@ async function copyTenantWaSummary(row) {
                       :href="getTenantWhatsappUrl(tenant)"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-primary flex items-center justify-center gap-1 cursor-pointer"
+                      class="py-gutter-sm px-gutter-xs rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-primary flex items-center justify-center gap-1 cursor-pointer truncate"
                     >
                       <span class="material-symbols-outlined text-[15px]">chat</span>
                       <span>Buka WA</span>
                     </a>
-                    <button
+                    <span
                       v-else
+                      class="py-gutter-sm px-gutter-xs rounded-sm bg-light-surface-container-low border border-light-outline-variant font-label text-label-sm text-light-on-surface-variant flex items-center justify-center text-center opacity-60"
+                      title="Nomor WhatsApp PIC belum diisi di Database Brand"
+                    >
+                      No WA
+                    </span>
+                    <button
                       type="button"
                       @click="copyPortalLink(tenant)"
-                      class="py-gutter-sm px-gutter-sm rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-primary text-center cursor-pointer"
+                      class="py-gutter-sm px-gutter-xs rounded-sm bg-light-surface-container-lowest border border-light-outline-variant font-label text-label-sm text-light-primary flex items-center justify-center gap-1 cursor-pointer truncate"
                     >
-                      {{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}
+                      <Copy class="w-3.5 h-3.5" />
+                      <span>{{ copiedId === tenant.id ? 'Copied!' : 'Portal' }}</span>
                     </button>
+                  </div>
+                  <div class="grid grid-cols-2 gap-gutter-xs">
                     <button
                       type="button"
                       @click="openEditTenant(tenant)"
@@ -3300,16 +3361,26 @@ async function copyTenantWaSummary(row) {
 
                     <!-- Rekening Pencairan -->
                     <td class="px-gutter-sm py-gutter-md">
-                      <div v-if="m.bank_name || m.bank_account || m.bank_info">
-                        <span class="font-mono text-mono-sm text-light-on-surface tabular-nums block font-bold">
-                          {{ m.bank_name ? m.bank_name.toUpperCase() : '' }} {{ m.bank_account ? '• ' + m.bank_account : '' }}
-                        </span>
-                        <span v-if="m.bank_holder" class="font-body text-body-sm text-light-on-surface-variant block">
-                          a.n. {{ m.bank_holder }}
-                        </span>
-                        <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-mono-sm text-light-on-surface tabular-nums block">
-                          {{ m.bank_info }}
-                        </span>
+                      <div v-if="m.bank_name || m.bank_account || m.bank_info" class="flex items-start justify-between gap-2">
+                        <div>
+                          <span class="font-mono text-mono-sm text-light-on-surface tabular-nums block font-bold">
+                            {{ m.bank_name ? m.bank_name.toUpperCase() : '' }} {{ m.bank_account ? '• ' + m.bank_account : '' }}
+                          </span>
+                          <span v-if="m.bank_holder" class="font-body text-body-sm text-light-on-surface-variant block">
+                            a.n. {{ m.bank_holder }}
+                          </span>
+                          <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-mono-sm text-light-on-surface tabular-nums block">
+                            {{ m.bank_info }}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          @click="copyBankAccount(m.bank_account || m.bank_info)"
+                          class="shrink-0 p-1 rounded hover:bg-light-surface-container-high text-light-on-surface-variant hover:text-light-primary transition-colors cursor-pointer"
+                          title="Salin nomor rekening"
+                        >
+                          <Copy class="w-3.5 h-3.5" />
+                        </button>
                       </div>
                       <span v-else class="font-body text-body-sm text-light-on-surface-variant">—</span>
                     </td>
@@ -3436,18 +3507,28 @@ async function copyTenantWaSummary(row) {
               <!-- Bank Info -->
               <div
                 v-if="m.bank_name || m.bank_account || m.bank_info"
-                class="p-gutter-sm rounded-sm bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-0.5"
+                class="p-gutter-sm rounded-sm bg-light-surface-container-low border border-light-outline-variant flex items-center justify-between gap-2"
               >
-                <span class="font-label text-label-sm text-light-on-surface-variant font-semibold">Rekening Pencairan</span>
-                <span class="font-mono text-mono-sm text-light-on-surface tabular-nums font-bold">
-                  {{ m.bank_name ? m.bank_name.toUpperCase() : '' }} {{ m.bank_account ? '• ' + m.bank_account : '' }}
-                </span>
-                <span v-if="m.bank_holder" class="font-body text-body-sm text-light-on-surface-variant">
-                  a.n. {{ m.bank_holder }}
-                </span>
-                <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-mono-sm text-light-on-surface tabular-nums">
-                  {{ m.bank_info }}
-                </span>
+                <div class="flex flex-col gap-0.5 min-w-0">
+                  <span class="font-label text-[11px] text-light-on-surface-variant font-semibold">Rekening Pencairan</span>
+                  <span class="font-mono text-mono-sm text-light-on-surface tabular-nums font-bold truncate">
+                    {{ m.bank_name ? m.bank_name.toUpperCase() : '' }} {{ m.bank_account ? '• ' + m.bank_account : '' }}
+                  </span>
+                  <span v-if="m.bank_holder" class="font-body text-body-sm text-light-on-surface-variant truncate">
+                    a.n. {{ m.bank_holder }}
+                  </span>
+                  <span v-else-if="!m.bank_name && !m.bank_account" class="font-mono text-mono-sm text-light-on-surface tabular-nums truncate">
+                    {{ m.bank_info }}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  @click="copyBankAccount(m.bank_account || m.bank_info)"
+                  class="shrink-0 px-2.5 py-1.5 rounded-sm bg-light-surface-container-lowest border border-light-outline-variant text-light-primary font-label text-label-sm font-semibold flex items-center gap-1 hover:bg-light-secondary-container transition-colors cursor-pointer select-none"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                  <span>Salin</span>
+                </button>
               </div>
 
               <!-- Status Event -->

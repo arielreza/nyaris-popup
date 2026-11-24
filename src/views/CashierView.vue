@@ -25,12 +25,25 @@
     </Transition>
 
     <!-- Mobile compact header (only shown on mobile, GlobalNavigation handles desktop top nav) -->
-    <header class="lg:hidden sticky top-0 z-30 bg-light-surface-container-lowest border-b border-light-outline-variant px-4 py-3 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2 min-w-0">
-        <ShoppingCart class="w-5 h-5 text-light-primary flex-shrink-0" />
-        <span class="font-display font-bold text-light-on-surface text-sm truncate">
-          {{ events.find(e => e.id === selectedEventId)?.name || 'PopUpPOS' }}
-        </span>
+    <header class="lg:hidden sticky top-0 z-30 bg-light-surface-container-lowest border-b border-light-outline-variant px-3 py-2 flex items-center justify-between gap-2">
+      <div class="flex-1 min-w-0">
+        <div class="w-full flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-md bg-light-secondary-container border border-light-outline-variant relative">
+          <span class="material-symbols-outlined text-[16px] text-light-primary shrink-0 pointer-events-none" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">festival</span>
+          <select
+            :value="selectedEventId"
+            @change="handleMobileEventSelect"
+            aria-label="Pilih Event Aktif"
+            class="bg-transparent text-light-on-secondary-container font-label text-xs sm:text-sm font-bold focus:outline-none cursor-pointer truncate w-full pr-5 appearance-none"
+          >
+            <option v-if="events.length === 0" value="">
+              Tidak Ada Event Aktif
+            </option>
+            <option v-for="ev in events" :key="ev.id" :value="ev.id" class="text-light-on-surface bg-light-surface font-medium">
+              {{ ev.name }}
+            </option>
+          </select>
+          <span class="material-symbols-outlined text-[16px] text-light-on-secondary-container shrink-0 absolute right-2 pointer-events-none" aria-hidden="true">expand_more</span>
+        </div>
       </div>
     </header>
 
@@ -613,8 +626,16 @@
                   type="text"
                   inputmode="numeric"
                   placeholder="0"
-                  class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-primary rounded-md pl-12 pr-4 py-3 text-2xl font-mono font-bold text-light-on-surface tabular-nums placeholder-light-on-surface-variant focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-colors"
+                  class="w-full bg-light-surface-container-low border border-light-outline-variant focus:border-light-primary rounded-md pl-12 pr-20 py-3 text-2xl font-mono font-bold text-light-on-surface tabular-nums placeholder-light-on-surface-variant focus:outline-none focus:ring-2 focus:ring-light-primary/20 transition-colors"
                 />
+                <button
+                  v-if="addToCartModal.amount"
+                  type="button"
+                  @click="clearAmount"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-semibold rounded bg-light-surface-container hover:bg-light-surface-container-high text-light-on-surface-variant hover:text-light-error transition-colors cursor-pointer select-none"
+                >
+                  Clear
+                </button>
               </div>
 
               <!-- Quick Add Chips -->
@@ -1024,7 +1045,46 @@ watch(selectedEventId, () => {
   txStatusFilter.value = 'ALL'
 })
 
-const cart = ref([])
+// ─── Cart Persistence (SessionStorage) ─────────────────────────────────────────
+
+const CART_STORAGE_KEY = 'popuppos_cashier_cart'
+const CART_EVENT_KEY = 'popuppos_cashier_cart_event_id'
+
+function loadSavedCart() {
+  try {
+    const savedEventId = sessionStorage.getItem(CART_EVENT_KEY)
+    const savedCart = sessionStorage.getItem(CART_STORAGE_KEY)
+    if (savedCart && savedEventId) {
+      return { eventId: savedEventId, items: JSON.parse(savedCart) }
+    }
+  } catch (e) {
+    console.warn('Failed to parse saved cart:', e)
+  }
+  return { eventId: '', items: [] }
+}
+
+function saveCartToStorage() {
+  try {
+    if (cart.value && cart.value.length > 0 && selectedEventId.value) {
+      sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart.value))
+      sessionStorage.setItem(CART_EVENT_KEY, selectedEventId.value)
+    } else {
+      sessionStorage.removeItem(CART_STORAGE_KEY)
+      sessionStorage.removeItem(CART_EVENT_KEY)
+    }
+  } catch (e) {
+    console.warn('Failed to save cart to storage:', e)
+  }
+}
+
+const initialSaved = loadSavedCart()
+const cart = ref(initialSaved.items || [])
+let currentEventScope = initialSaved.eventId || ''
+
+watch(cart, () => {
+  saveCartToStorage()
+}, { deep: true })
+
 const paymentMethod = ref('QRIS')
 const receiptCode = ref('AUTO')
 
@@ -1451,7 +1511,16 @@ async function onEventChange() {
   if (selectedEventId.value && selectedEventId.value !== globalEventId.value) {
     setGlobalEventId(selectedEventId.value)
   }
-  cart.value = []
+  if (currentEventScope && currentEventScope !== selectedEventId.value) {
+    cart.value = []
+    saveCartToStorage()
+  } else {
+    const saved = loadSavedCart()
+    if (saved.eventId === selectedEventId.value && saved.items.length > 0 && cart.value.length === 0) {
+      cart.value = saved.items
+    }
+  }
+  currentEventScope = selectedEventId.value
   receiptCode.value = 'AUTO'
   tenantSearchQuery.value = ''
   selectedTenantCategory.value = 'ALL'
@@ -1459,6 +1528,14 @@ async function onEventChange() {
   txStatusFilter.value = 'ALL'
   await Promise.all([fetchTenants(), fetchRecentTransactions()])
   subscribeRealtime()
+}
+
+async function handleMobileEventSelect(e) {
+  const newId = e.target.value
+  if (!newId || newId === selectedEventId.value) return
+  selectedEventId.value = newId
+  setGlobalEventId(newId)
+  await onEventChange()
 }
 
 // ─── Realtime Subscription ────────────────────────────────────────────────────

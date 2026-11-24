@@ -28,12 +28,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-light-surface text-light-on-surface font-body antialiased flex flex-col lg:flex-row">
+  <div class="min-h-screen bg-light-surface text-light-on-surface font-body antialiased flex flex-col lg:flex-row overflow-x-hidden w-full max-w-full">
     <!-- Global Navigation: Desktop Left Sidebar (240px) & Mobile Bottom Nav (72px) -->
     <GlobalNavigation v-if="showNav" />
 
     <!-- Main Content Area with Mobile Bottom Nav Clearance -->
-    <div class="flex-1 min-w-0" :class="{ 'pb-[76px] lg:pb-0': showNav }">
+    <div class="flex-1 min-w-0 overflow-x-hidden w-full max-w-full" :class="{ 'pb-[76px] lg:pb-0': showNav }">
       <router-view />
     </div>
   </div>
