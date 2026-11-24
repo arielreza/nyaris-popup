@@ -2578,24 +2578,6 @@ async function copyTenantWaSummary(row) {
                 <ChevronUp v-if="showEditEventForm" class="w-3.5 h-3.5 ml-1" />
                 <ChevronDown v-else class="w-3.5 h-3.5 ml-1" />
               </button>
-              <button
-                v-if="selectedEvent"
-                type="button"
-                @click="openAssignLineupModal"
-                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm rounded-md bg-light-primary text-light-on-primary hover:bg-light-primary-container transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer"
-              >
-                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
-                <span>+ Tugaskan Brand dari Database</span>
-              </button>
-              <button
-                @click="lockAdmin"
-                type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-light-surface-container-low hover:bg-light-surface-container text-light-on-surface-variant hover:text-light-on-surface border border-light-outline-variant font-label text-label-md transition-colors cursor-pointer shrink-0"
-                title="Kunci sesi Admin"
-              >
-                <Lock class="w-4 h-4 text-light-primary" />
-                <span class="hidden sm:inline">Kunci Admin</span>
-              </button>
             </div>
           </div>
 
@@ -2891,10 +2873,19 @@ async function copyTenantWaSummary(row) {
                   <h2 class="font-headline text-headline-md text-light-on-surface">Daftar Booth &amp; Tenant Terdaftar</h2>
                   <p class="font-body text-body-sm text-light-on-surface-variant">Atur nomor booth, komisi bagi hasil kustom, dan kelola akses portal tenant.</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-gutter-sm">
                   <span class="font-mono text-mono-sm px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-low border border-light-outline-variant text-light-on-surface-variant">
                     {{ tenants.length }} Booth Terdaftar
                   </span>
+                  <button
+                    v-if="selectedEvent"
+                    type="button"
+                    @click="openAssignLineupModal"
+                    class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm rounded-md bg-light-primary text-light-on-primary hover:bg-light-primary-container transition-colors duration-state-change ease-state-change shrink-0 font-label text-label-md cursor-pointer shadow-xs font-semibold"
+                  >
+                    <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
+                    <span>+ Tugaskan Brand dari Database</span>
+                  </button>
                 </div>
               </div>
 
@@ -2923,7 +2914,7 @@ async function copyTenantWaSummary(row) {
               <Loader2 class="w-7 h-7 text-light-primary animate-spin" />
             </div>
             <div v-else-if="tenants.length === 0" class="text-center py-12 text-light-on-surface-variant text-sm font-body">
-              Belum ada booth/tenant terdaftar di event ini. Gunakan tombol "+ Tugaskan Brand dari Database" di atas.
+              Belum ada booth/tenant terdaftar di event ini. Klik tombol "+ Tugaskan Brand dari Database" untuk menambahkan peserta.
             </div>
             <div v-else>
               <!-- Desktop / Tablet Table View (>= 768px: hidden on mobile) -->
