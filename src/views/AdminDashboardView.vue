@@ -45,7 +45,13 @@ import { generateEventSettlementPdf, generateTenantSettlementPdf } from '@/lib/e
 const router = useRouter()
 const route = useRoute()
 const { signOut } = useAuth()
-const { selectedEventId: globalEventId, selectEventId: setGlobalEventId } = useEvents()
+const {
+  events: globalEvents,
+  fetchEvents: fetchGlobalEvents,
+  selectedEventId: globalEventId,
+  selectEventId: setGlobalEventId,
+  syncEvents
+} = useEvents()
 
 async function handleLogout() {
   lockAdmin()
@@ -175,6 +181,12 @@ watch(activeTab, async () => {
 
 const events = ref([])
 const selectedEventId = ref(null)
+
+watch(globalEvents, (newEvents) => {
+  if (newEvents && newEvents.length > 0) {
+    events.value = newEvents
+  }
+}, { immediate: true })
 
 watch(globalEventId, (newId) => {
   if (newId && newId !== selectedEventId.value && events.value.some((e) => e.id === newId)) {
@@ -382,12 +394,15 @@ const settlementRows = computed(() => {
 
 async function fetchEvents() {
   loadingEvents.value = true
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .order('created_at', { ascending: false })
-  loadingEvents.value = false
-  if (!error) events.value = data
+  try {
+    const data = await fetchGlobalEvents()
+    events.value = data
+    return data
+  } catch (err) {
+    console.error('fetchEvents error:', err)
+  } finally {
+    loadingEvents.value = false
+  }
 }
 
 async function fetchTenants(eventId) {
@@ -536,13 +551,16 @@ async function createEvent() {
     createEventError.value = error.message
     return
   }
-  events.value.unshift(data)
+  await fetchGlobalEvents()
+  events.value = globalEvents.value
   selectedEventId.value = data.id
+  setGlobalEventId(data.id)
   newEvent.value = { name: '', venue: '', venue_share_percent: 10, organizer_share_percent: 0 }
   const today = new Date().toISOString().slice(0, 10)
   eventStartDate.value = today
   eventEndDate.value = today
   showCreateEventForm.value = false
+  showToast('success', `Event "${data.name}" berhasil dibuat dan diaktifkan.`)
 }
 
 // ─── Add Tenant ───────────────────────────────────────────────────────────────
@@ -872,6 +890,8 @@ async function saveEditEvent() {
 
   savingEditEvent.value = false
   showEditEventForm.value = false
+  await fetchGlobalEvents()
+  events.value = globalEvents.value
   showToast('success', `Pengaturan event "${updatedEvent.name}" berhasil disimpan!`)
 }
 
@@ -898,6 +918,8 @@ async function toggleEventStatus(ev) {
     if (idx !== -1) {
       events.value[idx] = { ...events.value[idx], ...data, status: newStatus, is_active: newStatus === 'ACTIVE' }
     }
+    await fetchGlobalEvents()
+    events.value = globalEvents.value
     const label = newStatus === 'ACTIVE' ? 'diaktifkan kembali' : 'ditandai selesai'
     showToast('success', `Event "${ev.name}" berhasil ${label}!`)
   } catch (err) {
@@ -2131,52 +2153,58 @@ async function copyTenantWaSummary(row) {
             <!-- KPI 1: Primary Highlighted Card -->
             <article class="h-full p-gutter-lg rounded-md bg-light-primary text-light-on-primary flex flex-col justify-between gap-gutter-sm shadow-sm">
               <div class="flex items-center justify-between gap-gutter-xs">
-                <span class="font-label text-label-md text-light-on-primary">Total Omzet Kotor</span>
+                <span class="font-label text-label-md text-light-on-primary font-semibold">Total Omzet Kotor</span>
                 <span class="material-symbols-outlined text-[20px] text-light-on-primary shrink-0" aria-hidden="true">payments</span>
               </div>
               <div>
                 <p class="font-headline text-headline-lg font-bold text-light-on-primary font-mono tabular-nums">{{ formatRupiah(totalGross) }}</p>
-                <p class="font-label text-label-sm text-light-on-primary mt-gutter-xs tabular-nums">{{ validTransactions.length }} transaksi non-voided</p>
+                <p class="font-label text-label-sm text-light-on-primary/90 mt-gutter-xs tabular-nums">{{ validTransactions.length }} transaksi non-voided</p>
               </div>
             </article>
 
             <!-- KPI 2: Hak Bersih Tenant -->
-            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant flex flex-col justify-between gap-gutter-sm">
+            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant border-t-4 border-t-light-primary flex flex-col justify-between gap-gutter-sm shadow-xs">
               <div class="flex items-center justify-between gap-gutter-xs">
-                <span class="font-label text-label-md text-light-on-surface-variant">Hak Bersih Tenant</span>
-                <span class="material-symbols-outlined text-[20px] text-light-primary shrink-0" aria-hidden="true">storefront</span>
+                <span class="font-label text-label-md text-light-on-surface-variant font-semibold">Hak Bersih Tenant</span>
+                <div class="w-8 h-8 rounded-full bg-light-secondary-container flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[18px] text-light-primary" aria-hidden="true">storefront</span>
+                </div>
               </div>
               <div>
-                <p class="font-headline text-headline-lg font-bold text-light-on-surface font-mono tabular-nums">{{ formatRupiah(totalTenantNet) }}</p>
-                <p class="font-label text-label-sm text-light-primary mt-gutter-xs tabular-nums">
+                <p class="font-headline text-headline-lg font-bold text-light-primary font-mono tabular-nums">{{ formatRupiah(totalTenantNet) }}</p>
+                <p class="font-label text-label-sm text-light-primary font-semibold mt-gutter-xs tabular-nums">
                   {{ totalGross > 0 ? Math.round((totalTenantNet / totalGross) * 100) : 0 }}% rata-rata
                 </p>
               </div>
             </article>
 
             <!-- KPI 3: Bagian Venue -->
-            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant flex flex-col justify-between gap-gutter-sm">
+            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant border-t-4 border-t-qris flex flex-col justify-between gap-gutter-sm shadow-xs">
               <div class="flex items-center justify-between gap-gutter-xs">
-                <span class="font-label text-label-md text-light-on-surface-variant">Bagian Venue</span>
-                <span class="material-symbols-outlined text-[20px] text-light-on-surface-variant shrink-0" aria-hidden="true">apartment</span>
+                <span class="font-label text-label-md text-light-on-surface-variant font-semibold">Bagian Venue</span>
+                <div class="w-8 h-8 rounded-full bg-qris-container flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[18px] text-qris" aria-hidden="true">apartment</span>
+                </div>
               </div>
               <div>
-                <p class="font-headline text-headline-lg font-bold text-light-on-surface font-mono tabular-nums">{{ formatRupiah(totalVenueCut) }}</p>
-                <p class="font-label text-label-sm text-light-on-surface-variant mt-gutter-xs tabular-nums">
+                <p class="font-headline text-headline-lg font-bold text-qris font-mono tabular-nums">{{ formatRupiah(totalVenueCut) }}</p>
+                <p class="font-label text-label-sm text-qris font-semibold mt-gutter-xs tabular-nums">
                   {{ totalGross > 0 ? Math.round((totalVenueCut / totalGross) * 100) : 0 }}%
                 </p>
               </div>
             </article>
 
             <!-- KPI 4: Bagian Organizer -->
-            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant flex flex-col justify-between gap-gutter-sm">
+            <article class="h-full p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant border-t-4 border-t-warning flex flex-col justify-between gap-gutter-sm shadow-xs">
               <div class="flex items-center justify-between gap-gutter-xs">
-                <span class="font-label text-label-md text-light-on-surface-variant">Bagian Organizer</span>
-                <span class="material-symbols-outlined text-[20px] text-light-on-surface-variant shrink-0" aria-hidden="true">groups</span>
+                <span class="font-label text-label-md text-light-on-surface-variant font-semibold">Bagian Organizer</span>
+                <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[18px] text-warning" aria-hidden="true">groups</span>
+                </div>
               </div>
               <div>
-                <p class="font-headline text-headline-lg font-bold text-light-on-surface font-mono tabular-nums">{{ formatRupiah(totalOrganizerCut) }}</p>
-                <p class="font-label text-label-sm text-light-on-surface-variant mt-gutter-xs tabular-nums">
+                <p class="font-headline text-headline-lg font-bold text-warning font-mono tabular-nums">{{ formatRupiah(totalOrganizerCut) }}</p>
+                <p class="font-label text-label-sm text-warning font-semibold mt-gutter-xs tabular-nums">
                   {{ totalGross > 0 ? Math.round((totalOrganizerCut / totalGross) * 100) : 0 }}%
                 </p>
               </div>
@@ -2295,9 +2323,9 @@ async function copyTenantWaSummary(row) {
                       <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Booth #</th>
                       <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase">Brand &amp; Kategori</th>
                       <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Omzet Kotor</th>
-                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Potongan Venue</th>
-                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Potongan EO</th>
-                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Hak Bersih Tenant</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-qris uppercase text-right font-bold">Potongan Venue</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-warning uppercase text-right font-bold">Potongan EO</th>
+                      <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-primary uppercase text-right font-bold">Hak Bersih Tenant</th>
                       <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-center">Status Transfer</th>
                       <th scope="col" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase text-right">Aksi</th>
                     </tr>
@@ -2318,8 +2346,8 @@ async function copyTenantWaSummary(row) {
                         <p class="font-body text-body-sm text-light-on-surface-variant">{{ row.category || 'Umum' }}</p>
                       </td>
                       <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-on-surface tabular-nums font-semibold">{{ formatRupiah(row.gross) }}</td>
-                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums">{{ formatRupiah(row.venueCut) }}</td>
-                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums">{{ formatRupiah(row.orgCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-qris tabular-nums font-semibold">{{ formatRupiah(row.venueCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-warning tabular-nums font-semibold">{{ formatRupiah(row.orgCut) }}</td>
                       <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-primary tabular-nums font-bold">{{ formatRupiah(row.net) }}</td>
                       <td class="py-gutter-md px-gutter-md text-center">
                         <button
@@ -2366,8 +2394,8 @@ async function copyTenantWaSummary(row) {
                     <tr class="bg-light-surface-container-low text-xs font-bold border-t-2 border-light-outline-variant">
                       <td colspan="2" class="py-gutter-md px-gutter-md font-label text-label-sm text-light-on-surface-variant uppercase tracking-wider">Total Keseluruhan</td>
                       <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-on-surface tabular-nums font-bold">{{ formatRupiah(totalGross) }}</td>
-                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(totalVenueCut) }}</td>
-                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(totalOrganizerCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-qris tabular-nums font-bold">{{ formatRupiah(totalVenueCut) }}</td>
+                      <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-sm text-warning tabular-nums font-bold">{{ formatRupiah(totalOrganizerCut) }}</td>
                       <td class="py-gutter-md px-gutter-md text-right font-mono text-mono-md text-light-primary tabular-nums font-bold">{{ formatRupiah(totalTenantNet) }}</td>
                       <td colspan="2"></td>
                     </tr>
@@ -2412,15 +2440,15 @@ async function copyTenantWaSummary(row) {
                       <span class="font-mono text-mono-md text-light-on-surface tabular-nums font-semibold">{{ formatRupiah(row.gross) }}</span>
                     </div>
                     <div>
-                      <span class="font-label text-label-sm text-light-on-surface-variant block">Potongan Venue</span>
-                      <span class="font-mono text-mono-md text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(row.venueCut) }}</span>
+                      <span class="font-label text-label-sm text-qris font-semibold block">Potongan Venue</span>
+                      <span class="font-mono text-mono-md text-qris tabular-nums font-semibold">{{ formatRupiah(row.venueCut) }}</span>
                     </div>
                     <div>
-                      <span class="font-label text-label-sm text-light-on-surface-variant block">Potongan EO</span>
-                      <span class="font-mono text-mono-md text-light-on-surface-variant tabular-nums font-semibold">{{ formatRupiah(row.orgCut) }}</span>
+                      <span class="font-label text-label-sm text-warning font-semibold block">Potongan EO</span>
+                      <span class="font-mono text-mono-md text-warning tabular-nums font-semibold">{{ formatRupiah(row.orgCut) }}</span>
                     </div>
                     <div>
-                      <span class="font-label text-label-sm text-light-on-surface-variant block">Hak Bersih Tenant</span>
+                      <span class="font-label text-label-sm text-light-primary font-semibold block">Hak Bersih Tenant</span>
                       <span class="font-mono text-mono-md text-light-primary tabular-nums font-bold">{{ formatRupiah(row.net) }}</span>
                     </div>
                   </div>
@@ -2456,15 +2484,15 @@ async function copyTenantWaSummary(row) {
                   </div>
                   <div class="grid grid-cols-3 gap-2 text-xs pt-1">
                     <div>
-                      <span class="font-label text-[10px] text-light-on-surface-variant block">Venue Cut</span>
-                      <span class="font-mono font-semibold text-light-on-surface-variant tabular-nums text-xs">{{ formatRupiah(totalVenueCut) }}</span>
+                      <span class="font-label text-[10px] text-qris font-semibold block">Venue Cut</span>
+                      <span class="font-mono font-bold text-qris tabular-nums text-xs">{{ formatRupiah(totalVenueCut) }}</span>
                     </div>
                     <div>
-                      <span class="font-label text-[10px] text-light-on-surface-variant block">Org. Cut</span>
-                      <span class="font-mono font-semibold text-light-on-surface-variant tabular-nums text-xs">{{ formatRupiah(totalOrganizerCut) }}</span>
+                      <span class="font-label text-[10px] text-warning font-semibold block">Org. Cut</span>
+                      <span class="font-mono font-bold text-warning tabular-nums text-xs">{{ formatRupiah(totalOrganizerCut) }}</span>
                     </div>
                     <div>
-                      <span class="font-label text-[10px] text-light-primary block">Tenant Net</span>
+                      <span class="font-label text-[10px] text-light-primary font-bold block">Tenant Net</span>
                       <span class="font-mono font-bold text-light-primary tabular-nums text-xs">{{ formatRupiah(totalTenantNet) }}</span>
                     </div>
                   </div>

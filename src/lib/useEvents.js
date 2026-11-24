@@ -141,6 +141,20 @@ export function useEvents() {
     return data
   }
 
+  /**
+   * Synchronize the global events array manually with a fresh list.
+   * @param {Array} newEvents
+   */
+  function syncEvents(newEvents) {
+    if (Array.isArray(newEvents)) {
+      events.value = [...newEvents]
+      if (selectedEventId.value) {
+        const found = events.value.find(e => e.id === selectedEventId.value)
+        activeEvent.value = found || null
+      }
+    }
+  }
+
   return {
     events,
     activeEvent,
@@ -149,6 +163,7 @@ export function useEvents() {
     setActiveEvent,
     selectEventId,
     fetchEvents,
+    syncEvents,
     createEvent,
     updateEvent,
     isEventActive

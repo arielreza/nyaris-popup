@@ -921,7 +921,13 @@ import { formatRupiah } from '@/lib/currency.js'
 
 const router = useRouter()
 const { signOut } = useAuth()
-const { selectedEventId: globalEventId, selectEventId: setGlobalEventId } = useEvents()
+const {
+  events: globalEvents,
+  fetchEvents: fetchGlobalEvents,
+  selectedEventId: globalEventId,
+  selectEventId: setGlobalEventId,
+  isEventActive
+} = useEvents()
 
 async function handleLogout() {
   await signOut()
@@ -943,6 +949,22 @@ const selectedEventId = ref('')
 const tenants = ref([])
 const recentTransactions = ref([])
 
+watch(globalEvents, async (all) => {
+  if (all && all.length > 0) {
+    events.value = all.filter(isEventActive)
+    if (globalEventId.value && events.value.some((e) => e.id === globalEventId.value)) {
+      if (selectedEventId.value !== globalEventId.value) {
+        selectedEventId.value = globalEventId.value
+        await onEventChange()
+      }
+    } else if (events.value.length > 0 && (!selectedEventId.value || !events.value.some((e) => e.id === selectedEventId.value))) {
+      selectedEventId.value = events.value[0].id
+      setGlobalEventId(events.value[0].id)
+      await onEventChange()
+    }
+  }
+}, { immediate: true })
+
 watch(globalEventId, async (newId) => {
   if (newId && newId !== selectedEventId.value) {
     const target = events.value.find((e) => e.id === newId)
@@ -950,8 +972,9 @@ watch(globalEventId, async (newId) => {
       selectedEventId.value = newId
       await onEventChange()
     } else if (events.value.length > 0) {
-      selectedEventId.value = events.value[0].id
-      setGlobalEventId(events.value[0].id)
+      const activeOne = events.value.find(isEventActive) || events.value[0]
+      selectedEventId.value = activeOne.id
+      setGlobalEventId(activeOne.id)
       await onEventChange()
     }
   }
@@ -1338,21 +1361,12 @@ function showSuccess(msg) {
 async function fetchEvents() {
   loadingEvents.value = true
   try {
-    const { data, error } = await supabase
-      .from('events')
-      .select('id, name, venue, event_dates, status, is_active, created_at')
-      .order('created_at', { ascending: false })
-    if (error) throw error
+    const data = await fetchGlobalEvents()
     // Filter to only ACTIVE events (exclude COMPLETED)
-    events.value = (data || []).filter((e) => {
-      const isCompleted = (e.status || '').toUpperCase() === 'COMPLETED'
-      const isActive = e.status ? (e.status.toUpperCase() === 'ACTIVE') : (e.is_active !== false)
-      return isActive && !isCompleted
-    })
+    events.value = (data || []).filter(isEventActive)
 
     // Auto-select the first active event or maintain current if still active
     const globalMatch = globalEventId.value && events.value.find((e) => e.id === globalEventId.value)
-    const stillActive = events.value.some((e) => e.id === selectedEventId.value)
     if (globalMatch) {
       selectedEventId.value = globalMatch.id
       await onEventChange()

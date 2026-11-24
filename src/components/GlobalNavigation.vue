@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/lib/useAuth.js'
 import { useEvents } from '@/lib/useEvents.js'
@@ -7,7 +7,7 @@ import { useEvents } from '@/lib/useEvents.js'
 const route = useRoute()
 const router = useRouter()
 const { signOut, user } = useAuth()
-const { events, activeEvent, selectedEventId, selectEventId, isEventActive } = useEvents()
+const { events, activeEvent, selectedEventId, selectEventId, isEventActive, fetchEvents } = useEvents()
 
 const isCashier = computed(() => route.path === '/')
 
@@ -18,19 +18,29 @@ const displayedEvents = computed(() => {
   return events.value
 })
 
-// Auto-fallback: if cashier view has a COMPLETED/inactive event selected, fallback to first ACTIVE event
+const currentSelectedEvent = computed(() => {
+  if (!displayedEvents.value.length) return null
+  return displayedEvents.value.find((e) => e.id === selectedEventId.value) || displayedEvents.value[0]
+})
+
+const currentDropdownValue = computed(() => {
+  return currentSelectedEvent.value ? currentSelectedEvent.value.id : ''
+})
+
+onMounted(async () => {
+  if (events.value.length === 0) {
+    await fetchEvents()
+  }
+})
+
+// Auto-fallback: if cashier view has a COMPLETED/inactive event selected or empty, fallback safely
 watch(
-  [() => route.path, events, selectedEventId],
+  [() => route.path, displayedEvents],
   () => {
-    if (isCashier.value && events.value.length > 0) {
-      const current = events.value.find((e) => e.id === selectedEventId.value)
-      if (!current || !isEventActive(current)) {
-        const firstActive = events.value.find(isEventActive)
-        if (firstActive) {
-          selectEventId(firstActive.id)
-        } else {
-          selectEventId('')
-        }
+    if (displayedEvents.value.length > 0) {
+      const match = displayedEvents.value.find((e) => e.id === selectedEventId.value)
+      if (!match) {
+        selectEventId(displayedEvents.value[0].id)
       }
     }
   },
@@ -104,7 +114,7 @@ const userInitial = computed(() => {
             <div class="flex items-center gap-gutter-sm min-w-0 flex-1">
               <span class="material-symbols-outlined text-[16px] text-light-primary shrink-0" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">festival</span>
               <select
-                :value="selectedEventId"
+                :value="currentDropdownValue"
                 @change="handleEventSelect"
                 aria-label="Pilih Event Aktif"
                 class="bg-transparent text-light-on-secondary-container font-label text-label-md font-semibold focus:outline-none cursor-pointer truncate w-full"
